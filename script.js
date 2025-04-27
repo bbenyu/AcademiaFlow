@@ -489,27 +489,40 @@ function copyText() {
     });
 }
 
-function savePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.text(document.getElementById('output-text').innerText, 10, 10);
-    doc.save('research_synthesis.pdf');
-    setCookie('lastSave', 'pdf', 30);
+// script.js: Example for saveDocx and savePDF
+function saveDocx() {
+    try {
+        const text = document.getElementById('output-text').innerText;
+        const doc = new docxtemplater(new JSZip(), { paragraphLoop: true });
+        const content = `
+            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                <w:body>
+                    <w:p><w:r><w:t>${text.replace(/\n/g, '</w:t></w:r></w:p><w:p><w:r><w:t>')}</w:t></w:r></w:p>
+                </w:body>
+            </w:document>`;
+        doc.loadZip(new JSZip()).setData(content).render();
+        const blob = doc.getZip().generate({ type: 'blob' });
+        saveAs(blob, 'research_synthesis.docx');
+        setCookie('lastSave', 'docx', 30);
+    } catch (e) {
+        console.error('DOCX export failed:', e);
+        localStorage.setItem('lastError', `DOCX export: ${e.message}`);
+        alert('Failed to generate DOCX. Please try again or export as text.');
+    }
 }
 
-function saveDocx() {
-    const text = document.getElementById('output-text').innerText;
-    const doc = new docxtemplater(new JSZip(), { paragraphLoop: true });
-    const content = `
-        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-            <w:body>
-                <w:p><w:r><w:t>${text.replace(/\n/g, '</w:t></w:r></w:p><w:p><w:r><w:t>')}</w:t></w:r></w:p>
-            </w:body>
-        </w:document>`;
-    doc.loadZip(new JSZip()).setData(content).render();
-    const blob = doc.getZip().generate({ type: 'blob' });
-    saveAs(blob, 'research_synthesis.docx');
-    setCookie('lastSave', 'docx', 30);
+function savePDF() {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text(document.getElementById('output-text').innerText, 10, 10);
+        doc.save('research_synthesis.pdf');
+        setCookie('lastSave', 'pdf', 30);
+    } catch (e) {
+        console.error('PDF export failed:', e);
+        localStorage.setItem('lastError', `PDF export: ${e.message}`);
+        alert('Failed to generate PDF. Please try again or export as text.');
+    }
 }
 
 function saveText() {
@@ -826,7 +839,9 @@ function loadAutoSave() {
     }
 }
 
+// script.js
 function addDragEvents(snippet) {
+    snippet.setAttribute('tabindex', '0');
     snippet.addEventListener('dragstart', e => {
         e.dataTransfer.setData('text/plain', snippet.querySelector('h3').innerText.split(' ')[2]);
         snippet.classList.add('dragging');
@@ -834,29 +849,65 @@ function addDragEvents(snippet) {
     snippet.addEventListener('dragend', () => {
         snippet.classList.remove('dragging');
     });
-    snippet.addEventListener('dragover', e => {
-        e.preventDefault();
-    });
+    snippet.addEventListener('dragover', e => e.preventDefault());
     snippet.addEventListener('drop', e => {
         e.preventDefault();
         const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
         const targetIndex = parseInt(snippet.querySelector('h3').innerText.split(' ')[2]);
-        if (draggedIndex !== targetIndex) {
-            const container = document.getElementById('snippets-container');
-            const snippets = Array.from(container.children);
-            const dragged = snippets[draggedIndex - 1];
-            const target = snippets[targetIndex - 1];
-            if (draggedIndex < targetIndex) {
-                container.insertBefore(dragged, target.nextSibling);
-            } else {
-                container.insertBefore(dragged, target);
+        reorderSnippets(draggedIndex, targetIndex);
+    });
+    snippet.addEventListener('keydown', e => {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            const index = parseInt(snippet.querySelector('h3').innerText.split(' ')[2]);
+            const targetIndex = e.key === 'ArrowUp' ? index - 1 : index + 1;
+            if (targetIndex >= 1 && targetIndex <= snippetCount) {
+                reorderSnippets(index, targetIndex);
+                document.querySelector(`.snippet:nth-child(${targetIndex})`).focus();
             }
-            renumberSnippets();
-            updatePreview();
-            autoSave();
         }
     });
 }
+
+function reorderSnippets(draggedIndex, targetIndex) {
+    if (draggedIndex !== targetIndex) {
+        const container = document.getElementById('snippets-container');
+        const snippets = Array.from(container.children);
+        const dragged = snippets[draggedIndex - 1];
+        const target = snippets[targetIndex - 1];
+        if (draggedIndex < targetIndex) {
+            container.insertBefore(dragged, target.nextSibling);
+        } else {
+            container.insertBefore(dragged, target);
+        }
+        renumberSnippets();
+        updatePreview();
+        autoSave();
+    }
+}
+
+// Focus trap for modals
+function trapFocus(modal) {
+    const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    modal.addEventListener('keydown', e => {
+        if (e.key === 'Tab') {
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+    });
+}
+
+// Apply to all modals
+document.querySelectorAll('#output-modal, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form').forEach(modal => {
+    trapFocus(modal);
+});
 
 function renumberSnippets() {
     const snippets = document.querySelectorAll('.snippet');
