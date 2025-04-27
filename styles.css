@@ -4,12 +4,14 @@
     --snippet-bg: #fff;
     --border-color: #ccc;
 }
+
 .dark-mode {
-    --bg-color: #333;
-    --text-color: #ddd;
-    --snippet-bg: #444;
-    --border-color: #555;
+    --bg-color: #222;
+    --text-color: #eee;
+    --snippet-bg: #333;
+    --border-color: #666;
 }
+
 body {
     font-family: Arial, sans-serif;
     background-color: var(--bg-color);
