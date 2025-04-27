@@ -5,7 +5,9 @@ let customStyle = localStorage.getItem('customStyle') || '{author}, {year}, {tit
 let validationTimeouts = {};
 let wordGoal = parseInt(localStorage.getItem('wordGoal')) || 0;
 let timerInterval = null;
-let timerSeconds = 25 * 60;
+let timerSeconds = parseInt(localStorage.getItem('workMinutes')) * 60 || 25 * 60;
+let workMinutes = parseInt(localStorage.getItem('workMinutes')) || 25;
+let breakMinutes = parseInt(localStorage.getItem('breakMinutes')) || 5;
 let isWorkSession = true;
 let currentCitationIndex = null;
 let goalReached = JSON.parse(localStorage.getItem('goalReached')) || false;
@@ -30,6 +32,18 @@ function getCookie(name) {
         if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
     }
     return null;
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
 
 function countWords(text) {
@@ -206,6 +220,8 @@ function applyFormattedCitation() {
 function closeCitationFormatModal() {
     document.getElementById('citation-format-modal').style.display = 'none';
 }
+
+const debouncedUpdatePreview = debounce(updatePreview, 300);
 
 function updatePreview() {
     const snippets = [];
@@ -758,6 +774,11 @@ function savePreferences() {
 
 function startTimer() {
     if (!timerInterval) {
+        workMinutes = parseInt(document.getElementById('work-minutes').value) || 25;
+        breakMinutes = parseInt(document.getElementById('break-minutes').value) || 5;
+        localStorage.setItem('workMinutes', workMinutes);
+        localStorage.setItem('breakMinutes', breakMinutes);
+        timerSeconds = isWorkSession ? workMinutes * 60 : breakMinutes * 60;
         timerInterval = setInterval(updateTimer, 1000);
     }
 }
@@ -765,7 +786,9 @@ function startTimer() {
 function stopTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
-    timerSeconds = isWorkSession ? 25 * 60 : 5 * 60;
+    workMinutes = parseInt(document.getElementById('work-minutes').value) || 25;
+    breakMinutes = parseInt(document.getElementById('break-minutes').value) || 5;
+    timerSeconds = isWorkSession ? workMinutes * 60 : breakMinutes * 60;
     document.getElementById('timer-display').innerText = formatTime(timerSeconds);
 }
 
@@ -775,7 +798,9 @@ function updateTimer() {
         const audio = new Audio('./timerBeep.wav');
         audio.play().catch(e => console.error('Timer beep failed:', e));
         isWorkSession = !isWorkSession;
-        timerSeconds = isWorkSession ? 25 * 60 : 5 * 60;
+        workMinutes = parseInt(document.getElementById('work-minutes').value) || 25;
+        breakMinutes = parseInt(document.getElementById('break-minutes').value) || 5;
+        timerSeconds = isWorkSession ? workMinutes * 60 : breakMinutes * 60;
         document.getElementById('motivational-tip').innerText = isWorkSession ? 'Back to work!' : 'Take a break! Stretch or grab a snack.';
     }
     document.getElementById('timer-display').innerText = formatTime(timerSeconds);
@@ -796,6 +821,23 @@ function checkStorageCapacity() {
     return used < limit;
 }
 
+function clearStorage() {
+    localStorage.removeItem('autoSave');
+    localStorage.removeItem('referenceLibrary');
+    localStorage.removeItem('wordGoal');
+    localStorage.removeItem('goalReached');
+    localStorage.removeItem('customStyle');
+    localStorage.removeItem('preferences');
+    localStorage.removeItem('workMinutes');
+    localStorage.removeItem('breakMinutes');
+    const request = indexedDB.deleteDatabase('TextCombinerDB');
+    request.onsuccess = () => console.log('IndexedDB cleared');
+    request.onerror = () => console.error('Failed to clear IndexedDB');
+    alert('Storage cleared. Please reload the page.');
+}
+
+const debouncedAutoSave = debounce(autoSave, 1000);
+
 function autoSave() {
     const snippets = [];
     for (let i = 1; i <= snippetCount; i++) {
@@ -814,50 +856,65 @@ function autoSave() {
     }
 }
 
-function loadAutoSave() {
-    let saved = localStorage.getItem('autoSave');
-    if (saved) {
-        saved = JSON.parse(LZString.decompressFromUTF16(saved));
-    } else {
-        saved = loadFromIndexedDB();
-    }
-    if (saved) {
-        snippetCount = saved.snippetCount;
-        const container = document.getElementById('snippets-container');
-        container.innerHTML = '';
-        saved.snippets.forEach((item, i) => {
-            const index = i + 1;
-            const newSnippet = document.createElement('div');
-            newSnippet.className = 'snippet';
-            newSnippet.draggable = true;
-            newSnippet.setAttribute('tabindex', '0');
-            newSnippet.innerHTML = `
-                <h3 class="snippet-header">Text Snippet ${index}</h3>
-                <textarea id="snippet${index}" class="snippet-content" aria-label="Text Snippet ${index}">${item.snippet}</textarea>
-                <div class="snippet-meta">
-                    <span id="word-count${index}">Words: ${countWords(item.snippet)}</span>
-                    <div><label>Category:</label></div>
-                    <select id="source${index}" aria-label="Source type for Snippet ${index}">
-                        <option value="book" ${item.source === 'book' ? 'selected' : ''}>Book</option>
-                        <option value="journal" ${item.source === 'journal' ? 'selected' : ''}>Journal</option>
-                        <option value="website" ${item.source === 'website' ? 'selected' : ''}>Website</option>
-                        <option value="other" ${item.source === 'other' ? 'selected' : ''}>Other</option>
-                    </select>
-                </div>
-                <div class="tooltip">
-                    <input type="text" id="ref${index}" placeholder="${getPlaceholder()}" value="${item.ref}" aria-label="Reference for Snippet ${index}">
-                    <span class="tooltiptext" id="ref-tooltip${index}"></span>
-                    <button onclick="formatCitation(${index})" aria-label="Format citation for Snippet ${index}">Format</button>
-                </div>
-                <span id="error${index}" class="error"></span>
-                <span id="correct${index}" class="correct">Correct</span>
-            `;
-            container.appendChild(newSnippet);
-            addDragEvents(newSnippet);
-        });
-        updateAutoAdd();
-        updatePreview();
-        updateValidation();
+async function loadAutoSave() {
+    document.getElementById('loading-spinner').style.display = 'block';
+    try {
+        let saved = localStorage.getItem('autoSave');
+        if (saved) {
+            try {
+                saved = JSON.parse(LZString.decompressFromUTF16(saved));
+            } catch (e) {
+                console.error('Failed to parse autoSave:', e);
+                saved = null;
+            }
+        }
+        if (!saved) {
+            saved = await loadFromIndexedDB();
+        }
+        if (saved) {
+            snippetCount = Math.min(saved.snippetCount, 10); // Limit to 10 snippets initially
+            const container = document.getElementById('snippets-container');
+            container.innerHTML = '';
+            saved.snippets.slice(0, 10).forEach((item, i) => {
+                const index = i + 1;
+                const newSnippet = document.createElement('div');
+                newSnippet.className = 'snippet';
+                newSnippet.draggable = true;
+                newSnippet.setAttribute('tabindex', '0');
+                newSnippet.innerHTML = `
+                    <h3 class="snippet-header">Text Snippet ${index}</h3>
+                    <textarea id="snippet${index}" class="snippet-content" aria-label="Text Snippet ${index}">${item.snippet}</textarea>
+                    <div class="snippet-meta">
+                        <span id="word-count${index}">Words: ${countWords(item.snippet)}</span>
+                        <div><label>Category:</label></div>
+                        <select id="source${index}" aria-label="Source type for Snippet ${index}">
+                            <option value="book" ${item.source === 'book' ? 'selected' : ''}>Book</option>
+                            <option value="journal" ${item.source === 'journal' ? 'selected' : ''}>Journal</option>
+                            <option value="website" ${item.source === 'website' ? 'selected' : ''}>Website</option>
+                            <option value="other" ${item.source === 'other' ? 'selected' : ''}>Other</option>
+                        </select>
+                    </div>
+                    <div class="tooltip">
+                        <input type="text" id="ref${index}" placeholder="${getPlaceholder()}" value="${item.ref}" aria-label="Reference for Snippet ${index}">
+                        <span class="tooltiptext" id="ref-tooltip${index}"></span>
+                        <button onclick="formatCitation(${index})" aria-label="Format citation for Snippet ${index}">Format</button>
+                    </div>
+                    <span id="error${index}" class="error"></span>
+                    <span id="correct${index}" class="correct">Correct</span>
+                `;
+                container.appendChild(newSnippet);
+                addDragEvents(newSnippet);
+            });
+            updateAutoAdd();
+            updatePreview();
+            updateValidation();
+        }
+    } catch (e) {
+        console.error('Load autoSave failed:', e);
+        alert('Failed to load saved data. Clearing storage to prevent issues.');
+        clearStorage();
+    } finally {
+        document.getElementById('loading-spinner').style.display = 'none';
     }
 }
 
@@ -956,6 +1013,7 @@ function renumberSnippets() {
         tooltip.id = `ref-tooltip${index}`;
         const formatButton = snippet.querySelector('button');
         formatButton.setAttribute('onclick', `formatCitation(${index})`);
+        formatButton.setAttribute('aria-label', `Format citation Vehicles: 1
         formatButton.setAttribute('aria-label', `Format citation for Snippet ${index}`);
         const error = snippet.querySelector('.error');
         error.id = `error${index}`;
@@ -983,58 +1041,69 @@ function trapFocus(modal) {
 }
 
 function initialize() {
-    for (let i = 1; i <= snippetCount; i++) {
-        addSnippet();
-    }
-    document.getElementById('word-goal').addEventListener('input', () => {
-        wordGoal = parseInt(document.getElementById('word-goal').value) || 0;
-        localStorage.setItem('wordGoal', wordGoal);
-        updateGoalProgress();
-    });
-    document.getElementById('citationStyle').addEventListener('change', () => {
-        if (document.getElementById('citationStyle').value === 'custom') {
-            document.getElementById('custom-style-modal').style.display = 'block';
+    document.getElementById('loading-spinner').style.display = 'block';
+    try {
+        for (let i = 1; i <= snippetCount; i++) {
+            addSnippet();
         }
-        updatePlaceholders();
-    });
-    document.querySelectorAll('textarea, input[type="text"]').forEach(el => {
-        el.addEventListener('input', () => {
-            updatePreview();
-            autoSave();
-            if (el.id.startsWith('ref')) {
-                updateValidation(parseInt(el.id.replace('ref', '')));
+        document.getElementById('work-minutes').value = workMinutes;
+        document.getElementById('break-minutes').value = breakMinutes;
+        document.getElementById('word-goal').addEventListener('input', () => {
+            wordGoal = parseInt(document.getElementById('word-goal').value) || 0;
+            localStorage.setItem('wordGoal', wordGoal);
+            updateGoalProgress();
+        });
+        document.getElementById('citationStyle').addEventListener('change', () => {
+            if (document.getElementById('citationStyle').value === 'custom') {
+                document.getElementById('custom-style-modal').style.display = 'block';
+            }
+            updatePlaceholders();
+        });
+        document.querySelectorAll('textarea, input[type="text"]').forEach(el => {
+            el.addEventListener('input', debounce(() => {
+                debouncedUpdatePreview();
+                debouncedAutoSave();
+                if (el.id.startsWith('ref')) {
+                    updateValidation(parseInt(el.id.replace('ref', '')));
+                }
+            }, 300));
+        });
+        document.addEventListener('click', e => {
+            if (!e.target.closest('.save-options') && !e.target.closest('button[aria-label="Save online"]') && !e.target.closest('button[aria-label="Save locally"]')) {
+                document.getElementById('save-online-options').style.display = 'none';
+                document.getElementById('save-locally-options').style.display = 'none';
             }
         });
-    });
-    document.addEventListener('click', e => {
-        if (!e.target.closest('.save-options') && !e.target.closest('button[aria-label="Save online"]') && !e.target.closest('button[aria-label="Save locally"]')) {
-            document.getElementById('save-online-options').style.display = 'none';
-            document.getElementById('save-locally-options').style.display = 'none';
-        }
-    });
-    document.querySelectorAll('.snippet-content').forEach(textarea => {
-        textarea.addEventListener('input', () => {
-            updateWordCounts();
-            updateGoalProgress();
-            updatePreview();
+        document.querySelectorAll('.snippet-content').forEach(textarea => {
+            textarea.addEventListener('input', debounce(() => {
+                updateWordCounts();
+                updateGoalProgress();
+                debouncedUpdatePreview();
+            }, 300));
         });
-    });
-    document.getElementById('library-search').addEventListener('input', loadReferenceLibrary);
-    document.getElementById('select-all').addEventListener('change', e => {
-        document.querySelectorAll('.library-select').forEach(cb => cb.checked = e.target.checked);
-    });
-    document.querySelectorAll('#output-modal, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form').forEach(modal => {
-        trapFocus(modal);
-    });
-    setInterval(autoSave, 5000);
-    const tips = ['Write first, edit later.', 'Clarity is key.', 'Take breaks to stay focused.'];
-    document.getElementById('motivational-tip').innerText = tips[Math.floor(Math.random() * tips.length)];
-    if (preferences.citationStyle) document.getElementById('citationStyle').value = preferences.citationStyle;
-    document.getElementById('word-goal').value = wordGoal || '';
-    initIndexedDB();
-    loadAutoSave();
-    updatePlaceholders();
-    isInitialLoad = false; // Allow goal alerts after initialization
+        document.getElementById('library-search').addEventListener('input', loadReferenceLibrary);
+        document.getElementById('select-all').addEventListener('change', e => {
+            document.querySelectorAll('.library-select').forEach(cb => cb.checked = e.target.checked);
+        });
+        document.querySelectorAll('#output-modal, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form').forEach(modal => {
+            trapFocus(modal);
+        });
+        setInterval(debouncedAutoSave, 5000);
+        const tips = ['Write first, edit later.', 'Clarity is key.', 'Take breaks to stay focused.'];
+        document.getElementById('motivational-tip').innerText = tips[Math.floor(Math.random() * tips.length)];
+        if (preferences.citationStyle) document.getElementById('citationStyle').value = preferences.citationStyle;
+        document.getElementById('word-goal').value = wordGoal || '';
+        initIndexedDB();
+        loadAutoSave();
+        updatePlaceholders();
+        isInitialLoad = false;
+    } catch (e) {
+        console.error('Initialization failed:', e);
+        alert('Failed to initialize. Clearing storage to prevent issues.');
+        clearStorage();
+    } finally {
+        document.getElementById('loading-spinner').style.display = 'none';
+    }
 }
 
 function toggleDarkMode() {
