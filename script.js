@@ -345,7 +345,11 @@ function updateGoalProgress() {
 function showGoalReached() {
     const checkmark = document.getElementById('goal-reached');
     checkmark.style.display = 'block';
-    new Audio('goalReached.wav').play();
+    const audio = new Audio('./goalReached.wav');
+    audio.play().catch(e => {
+        console.error('Audio play failed:', e);
+        alert('Goal reached! (Audio unavailable)');
+    });
     setTimeout(() => {
         checkmark.style.display = 'none';
     }, 2000);
@@ -646,7 +650,8 @@ function stopTimer() {
 function updateTimer() {
     timerSeconds--;
     if (timerSeconds <= 0) {
-        new Audio('timerBeep.wav').play();
+        const audio = new Audio('./timerBeep.wav');
+        audio.play().catch(e => console.error('Timer beep failed:', e));
         isWorkSession = !isWorkSession;
         timerSeconds = isWorkSession ? 25 * 60 : 5 * 60;
         document.getElementById('motivational-tip').innerText = isWorkSession ? 'Back to work!' : 'Take a break! Stretch or grab a snack.';
