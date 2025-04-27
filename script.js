@@ -10,6 +10,48 @@ let isWorkSession = true;
 let currentCitationIndex = null;
 let goalReached = false;
 
+function clearAll() {
+    try {
+        if (confirm('Are you sure you want to clear all snippets? This action cannot be undone.')) {
+            // Clear the snippets container
+            const container = document.getElementById('snippets-container');
+            if (container) {
+                container.innerHTML = '';
+            } else {
+                console.error('Snippets container not found');
+            }
+
+            // Reset snippet count
+            snippetCount = 0;
+
+            // Clear auto-saved data
+            localStorage.removeItem('autoSave');
+
+            // Reset word goal progress
+            const currentWordsSpan = document.getElementById('current-words');
+            const goalValueSpan = document.getElementById('goal-value');
+            const checkmark = document.getElementById('goal-reached');
+            const progressElement = document.getElementById('progress');
+            if (currentWordsSpan) currentWordsSpan.innerText = '0';
+            if (goalValueSpan) goalValueSpan.innerText = wordGoal || '0';
+            if (checkmark) checkmark.style.display = 'none';
+            if (progressElement) progressElement.innerText = '0%';
+            goalReached = false;
+
+            // Clear preview content
+            const previewContent = document.getElementById('preview-content');
+            if (previewContent) previewContent.innerText = '';
+
+            console.log('All snippets cleared');
+        }
+    } catch (e) {
+        console.error('Error clearing all snippets:', e);
+        alert('Failed to clear snippets. Please try again.');
+    }
+}
+
+
+
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -905,27 +947,17 @@ function loadAutoSave() {
                 }, 300));
             });
             updatePreview();
-        } else {
-            const initialSnippets = calculateInitialSnippets();
-            console.log(`Loading ${initialSnippets} initial snippets`);
-            for (let i = 0; i < initialSnippets; i++) {
-                addSnippet(true);
-            }
         }
     } catch (e) {
         console.error('Error loading autoSave:', e);
         const container = document.getElementById('snippets-container');
-        if (container) {
-            container.innerHTML = '';
-            const initialSnippets = calculateInitialSnippets();
-            for (let i = 0; i < initialSnippets; i++) {
-                addSnippet(true);
-            }
-        }
+        if (container) container.innerHTML = '';
     } finally {
         document.getElementById('loading-spinner').style.display = 'none';
     }
 }
+
+
 
 function addDragEvents(snippet) {
     try {
@@ -1057,8 +1089,6 @@ function toggleDarkMode() {
 function initialize() {
     document.getElementById('loading-spinner').style.display = 'block';
     try {
-        // Remove localStorage.clear() to preserve saved data
-        // localStorage.clear();
         console.log('Initializing application');
         const timerMinutesInput = document.getElementById('timer-minutes');
         if (timerMinutesInput) {
@@ -1113,23 +1143,16 @@ function initialize() {
             citationStyleSelect.value = preferences.citationStyle;
         }
         loadAutoSave();
-        updatePlaceholders();
-        // Ensure at least one snippet is added if none exist
-        if (snippetCount === 0) {
-            console.log('No snippets found, adding one');
-            addSnippet(true);
-        }
     } catch (e) {
         console.error('Initialization failed:', e);
         const container = document.getElementById('snippets-container');
-        if (container) {
-            container.innerHTML = '';
-            addSnippet(true); // Fallback to one snippet
-        }
+        if (container) container.innerHTML = '';
     } finally {
         document.getElementById('loading-spinner').style.display = 'none';
     }
 }
+
+
 
 // Use DOMContentLoaded instead of window.onload for faster initialization
 document.addEventListener('DOMContentLoaded', initialize);
