@@ -4,43 +4,30 @@
     <meta charset="UTF-8">
     <title>Professional Editor</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Quill Editor CSS -->
-    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <script src="header.js"></script>
+    <!-- TinyMCE CDN -->
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <style>
-        #editor-toolbar {
-            margin-bottom: 8px;
-        }
-        #editor-container {
-            height: 400px;
-            background: #fff;
-            border-radius: 6px;
-            border: 1px solid var(--border-color, #ccc);
-        }
-        #editor-status-bar {
-            margin-top: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.95em;
-        }
-        .find-replace-bar {
-            margin-top: 8px;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .dark-mode #editor-container {
-            background: #222;
-            color: #eee;
-        }
+        .editor-container { margin-top: 24px; }
+        #editor-status-bar { margin-top: 8px; font-size: 0.95em; display: flex; justify-content: space-between; align-items: center; }
+        .tox-tinymce { border-radius: 6px; }
+        .dark-mode .tox-tinymce { background: #222; color: #eee; }
+        .center-viewport { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg-color, #f4f4f4);}
+        #spinner-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.7); z-index: 9999; display: none; align-items: center; justify-content: center;}
+        .spinner { border: 6px solid #f3f3f3; border-top: 6px solid #007bff; border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite;}
+        @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+        button, .nav-links a, .nav-links button { transition: background 0.2s, transform 0.1s, box-shadow 0.2s;}
+        button:hover, .nav-links a:hover, .nav-links button:hover { background: var(--primary-color, #007bff); color: #fff; transform: translateY(-2px) scale(1.04); box-shadow: 0 4px 16px rgba(0,123,255,0.08);}
+        button:active, .nav-links a:active, .nav-links button:active { transform: scale(0.97);}
+        .focus-mode .sidebar { display: none !important; }
+        .focus-mode .main-content { width: 100vw !important; max-width: 100vw !important; }
     </style>
 </head>
 <body>
-    <nav class="top-nav">
-        <h1>Editor</h1>
-        <a href="index.html" style="margin-left:auto;">Dashboard</a>
-    </nav>
-    <div class="container">
+    <div id="spinner-overlay"><div class="spinner"></div></div>
+    <nav class="top-nav"></nav>
+    <div class="center-viewport">
+        <div class="container" style="width: 100%; max-width: 1200px;">
         <aside class="sidebar">
             <h2>Tools</h2>
             <ul>
@@ -56,206 +43,139 @@
         </aside>
         <main class="main-content">
             <h2>Professional Editor</h2>
-            <p>Rich text editor with 10 free features to enhance your writing experience.</p>
+            <p>Advanced text editor with 50+ features to enhance your writing experience.</p>
             
-            <!-- Quill Toolbar -->
-            <div id="editor-toolbar">
-                <span class="ql-formats">
-                    <select class="ql-header">
-                        <option value="1">Heading 1</option>
-                        <option value="2">Heading 2</option>
-                        <option selected>Normal</option>
-                    </select>
-                    <select class="ql-font"></select>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-bold"></button>
-                    <button class="ql-italic"></button>
-                    <button class="ql-underline"></button>
-                    <button class="ql-strike"></button>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-list" value="ordered"></button>
-                    <button class="ql-list" value="bullet"></button>
-                    <button class="ql-indent" value="-1"></button>
-                    <button class="ql-indent" value="+1"></button>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-link"></button>
-                    <button class="ql-image"></button>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-undo" title="Undo"><b>&larr;</b></button>
-                    <button class="ql-redo" title="Redo"><b>&rarr;</b></button>
-                </span>
-                <span class="ql-formats">
-                    <button id="toggle-dark-mode" title="Toggle Dark Mode">🌙</button>
-                </span>
-            </div>
-            
-            <!-- Editor -->
-            <div id="editor-container"></div>
-            
-            <!-- Status Bar -->
-            <div id="editor-status-bar">
-                <span id="word-count">Words: 0 | Characters: 0</span>
-                <div>
-                    <button onclick="exportPDF()">Export PDF</button>
-                    <button onclick="exportDOCX()">Export DOCX</button>
-                    <button onclick="saveEditorContent()">Save</button>
-                    <button onclick="loadEditorContent()">Load</button>
+            <div class="editor-container">
+                <textarea id="editor"></textarea>
+                <div id="editor-status-bar">
+                    <span id="word-count">Words: 0 | Characters: 0 | Reading Time: 0 min</span>
+                    <div>
+                        <button id="toggle-dark-mode" title="Toggle Dark Mode">🌙</button>
+                        <button id="focus-mode-btn" title="Focus Mode">🖥️</button>
+                        <button id="download-md-btn" title="Download as Markdown">MD</button>
+                        <button id="clear-editor-btn" title="Clear Editor">🗑️</button>
+                        <button id="print-btn" title="Print">🖨️</button>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Find & Replace -->
-            <div class="find-replace-bar">
-                <input type="text" id="find-text" placeholder="Find...">
-                <input type="text" id="replace-text" placeholder="Replace with...">
-                <button onclick="findInEditor()">Find</button>
-                <button onclick="replaceInEditor()">Replace</button>
-                <span id="editor-status"></span>
-            </div>
         </main>
+        </div>
     </div>
-    
-    <!-- Quill JS -->
-    <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
-    <!-- jsPDF for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- docx for DOCX export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.0.2/docx.umd.min.js"></script>
-    
     <script>
-    // 1. Initialize Quill
-    var quill = new Quill('#editor-container', {
-        modules: {
-            toolbar: '#editor-toolbar',
-            history: { delay: 1000, maxStack: 100, userOnly: true }
-        },
-        theme: 'snow'
+    // Initialize header
+    renderHeader({
+        title: "Editor",
+        actions: [
+            { label: "Dashboard", href: "index.html" }
+        ]
     });
 
-    // 2. Undo/Redo
-    document.querySelector('.ql-undo').addEventListener('click', () => quill.history.undo());
-    document.querySelector('.ql-redo').addEventListener('click', () => quill.history.redo());
+    // Spinner utility
+    function showSpinner() { document.getElementById('spinner-overlay').style.display = 'flex'; }
+    function hideSpinner() { document.getElementById('spinner-overlay').style.display = 'none'; }
 
-    // 3. Word/Character Count
-    function updateWordCount() {
-        const text = quill.getText().trim();
-        const words = text.length ? text.split(/\s+/).length : 0;
-        const chars = text.replace(/\s/g, '').length;
-        document.getElementById('word-count').textContent = `Words: ${words} | Characters: ${chars}`;
-    }
-    quill.on('text-change', updateWordCount);
-    updateWordCount();
-
-    // 4. Save/Load
-    function saveEditorContent() {
-        const content = quill.root.innerHTML;
-        const user = localStorage.getItem('academictools_user');
-        if (user) {
-            localStorage.setItem('editor_' + user, content);
-            document.getElementById('editor-status').textContent = "Saved!";
-            setTimeout(() => {
-                document.getElementById('editor-status').textContent = "";
-            }, 2000);
+    // Initialize TinyMCE with 50+ features
+    tinymce.init({
+        selector: '#editor',
+        height: 500,
+        plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'media', 'table', 'help', 'wordcount', 'emoticons',
+            'codesample', 'directionality', 'nonbreaking', 'save', 'template',
+            'pagebreak', 'quickbars', 'autoresize', 'print', 'hr', 'spellchecker'
+        ],
+        toolbar: [
+            'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist checklist |',
+            'link image media codesample table hr pagebreak | anchor charmap emoticons | insertdatetime | searchreplace | visualblocks code fullscreen preview print | ltr rtl | save template |'
+        ].join(' '),
+        menubar: 'file edit view insert format tools table help',
+        autosave_ask_before_unload: true,
+        autosave_interval: '30s',
+        autosave_prefix: '{path}{query}-{id}-',
+        autosave_restore_when_empty: true,
+        autosave_retention: '2m',
+        image_advtab: true,
+        image_title: true,
+        quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote quickimage quicktable',
+        nonbreaking_force_tab: true,
+        contextmenu: 'link image table spellchecker',
+        spellchecker_dialog: true,
+        spellchecker_whitelist: ['AcademiaFlow'],
+        templates: [
+            { title: 'Academic Paragraph', description: 'Standard paragraph', content: '<p>This is an academic paragraph template.</p>' },
+            { title: 'Reference List', description: 'Reference section', content: '<h3>References</h3><ul><li>Author, A. (Year). Title. Journal.</li></ul>' }
+        ],
+        save_onsavecallback: function () {
+            const user = localStorage.getItem('academictools_user') || 'default';
+            localStorage.setItem('editor_' + user, tinymce.activeEditor.getContent());
+            const statusBar = document.getElementById('editor-status-bar');
+            const statusMsg = document.createElement('span');
+            statusMsg.textContent = "Saved!";
+            statusMsg.style.color = "green";
+            statusBar.appendChild(statusMsg);
+            setTimeout(() => statusMsg.remove(), 2000);
+        },
+        setup: function (editor) {
+            // Word/char count and reading time
+            function updateStatus() {
+                const text = editor.getContent({ format: 'text' });
+                const words = text.trim().split(/\s+/).filter(Boolean).length;
+                const chars = text.replace(/\s/g, '').length;
+                const readingTime = Math.max(1, Math.round(words / 200));
+                document.getElementById('word-count').textContent = `Words: ${words} | Characters: ${chars} | Reading Time: ${readingTime} min`;
+            }
+            editor.on('keyup change', updateStatus);
+            editor.on('init', function () {
+                const user = localStorage.getItem('academictools_user') || 'default';
+                const saved = localStorage.getItem('editor_' + user);
+                if (saved) editor.setContent(saved);
+                updateStatus();
+            });
         }
-    }
+    });
     
-    function loadEditorContent() {
-        const user = localStorage.getItem('academictools_user');
-        if (user) {
-            const html = localStorage.getItem('editor_' + user) || "";
-            quill.root.innerHTML = html;
-            updateWordCount();
-            document.getElementById('editor-status').textContent = "Loaded!";
-            setTimeout(() => {
-                document.getElementById('editor-status').textContent = "";
-            }, 2000);
-        }
-    }
-    
-    window.onload = loadEditorContent;
-
-    // 5. Export as PDF
-    function exportPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.html(quill.root, {
-            callback: function (pdf) {
-                pdf.save("document.pdf");
-            },
-            x: 10,
-            y: 10
-        });
-    }
-
-    // 6. Export as DOCX
-    function exportDOCX() {
-        const { Document, Packer, Paragraph, TextRun } = window.docx;
-        const doc = new Document({
-            sections: [{
-                properties: {},
-                children: [
-                    new Paragraph({
-                        children: [
-                            new TextRun(quill.getText())
-                        ]
-                    })
-                ]
-            }]
-        });
-        
-        Packer.toBlob(doc).then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "document.docx";
-            a.click();
-            window.URL.revokeObjectURL(url);
-        });
-    }
-
-    // 7. Find & Replace
-    function findInEditor() {
-        const findText = document.getElementById('find-text').value;
-        if (!findText) return;
-        const content = quill.getText();
-        const idx = content.indexOf(findText);
-        if (idx !== -1) {
-            quill.setSelection(idx, findText.length);
-        } else {
-            document.getElementById('editor-status').textContent = "Text not found.";
-            setTimeout(() => {
-                document.getElementById('editor-status').textContent = "";
-            }, 2000);
-        }
-    }
-    
-    function replaceInEditor() {
-        const findText = document.getElementById('find-text').value;
-        const replaceText = document.getElementById('replace-text').value;
-        if (!findText) return;
-        const content = quill.getText();
-        const idx = content.indexOf(findText);
-        if (idx !== -1) {
-            quill.deleteText(idx, findText.length);
-            quill.insertText(idx, replaceText);
-            document.getElementById('editor-status').textContent = "Text replaced.";
-            setTimeout(() => {
-                document.getElementById('editor-status').textContent = "";
-            }, 2000);
-        } else {
-            document.getElementById('editor-status').textContent = "Text not found.";
-            setTimeout(() => {
-                document.getElementById('editor-status').textContent = "";
-            }, 2000);
-        }
-    }
-
-    // 8. Dark Mode Toggle
+    // Dark Mode Toggle
     document.getElementById('toggle-dark-mode').onclick = function() {
         document.body.classList.toggle('dark-mode');
+    };
+
+    // Focus Mode
+    document.getElementById('focus-mode-btn').onclick = function() {
+        document.body.classList.toggle('focus-mode');
+    };
+
+    // Download as Markdown
+    document.getElementById('download-md-btn').onclick = function() {
+        const html = tinymce.activeEditor.getContent();
+        // Simple HTML to Markdown conversion (for demo)
+        let md = html.replace(/<h1>(.*?)<\/h1>/g, '# $1\n')
+                     .replace(/<h2>(.*?)<\/h2>/g, '## $1\n')
+                     .replace(/<h3>(.*?)<\/h3>/g, '### $1\n')
+                     .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+                     .replace(/<em>(.*?)<\/em>/g, '*$1*')
+                     .replace(/<ul>/g, '').replace(/<\/ul>/g, '')
+                     .replace(/<li>(.*?)<\/li>/g, '- $1\n')
+                     .replace(/<br\s*\/?>/g, '\n')
+                     .replace(/<[^>]+>/g, '');
+        const blob = new Blob([md], { type: "text/markdown" });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = "document.md";
+        a.click();
+        URL.revokeObjectURL(a.href);
+    };
+
+    // Clear Editor
+    document.getElementById('clear-editor-btn').onclick = function() {
+        if (confirm("Clear the editor?")) {
+            tinymce.activeEditor.setContent('');
+        }
+    };
+
+    // Print
+    document.getElementById('print-btn').onclick = function() {
+        tinymce.activeEditor.execCommand('mcePrint');
     };
     </script>
 </body>

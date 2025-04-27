@@ -4,14 +4,10 @@
     <meta charset="UTF-8">
     <title>Text & Reference Combiner</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="header.js"></script>
 </head>
 <body>
-    <nav class="top-nav">
-        <span class="site-title">Text & Reference Combiner</span>
-        <div class="nav-links">
-            <a href="index.html">Dashboard</a>
-        </div>
-    </nav>
+    <nav class="top-nav"></nav>
     <div class="container">
         <aside class="sidebar">
             <h2>Tools</h2>
@@ -33,5 +29,13 @@
             <!-- Tool content goes here -->
         </main>
     </div>
+    <script>
+    renderHeader({
+        title: "Text & Reference Combiner",
+        actions: [
+            { label: "Dashboard", href: "index.html" }
+        ]
+    });
+    </script>
 </body>
 </html>

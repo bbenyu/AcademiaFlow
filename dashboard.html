@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AcademiaFlow Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="header.js"></script>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+        }
+        .center-viewport {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-color, #f4f4f4);
+        }
+        .dashboard-container {
+            display: flex;
+            width: 100vw;
+            max-width: 1400px;
+            min-height: 80vh;
+            margin: 0 auto;
+            background: transparent;
+        }
+        .dashboard-sidebar {
+            min-width: 220px;
+            max-width: 260px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            margin: 32px 24px 32px 0;
+            padding: 24px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .dashboard-sidebar h2 {
+            font-size: 1.2em;
+            margin-bottom: 16px;
+        }
+        .dashboard-sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+        .dashboard-sidebar li {
+            margin-bottom: 12px;
+        }
+        .dashboard-sidebar a {
+            color: var(--primary-color, #007bff);
+            text-decoration: none;
+            font-size: 1.05em;
+            padding: 6px 12px;
+            border-radius: 5px;
+            display: block;
+            transition: background 0.2s, color 0.2s;
+        }
+        .dashboard-sidebar a:hover {
+            background: var(--primary-color, #007bff);
+            color: #fff;
+        }
+        .dashboard-main {
+            flex: 1;
+            margin: 32px 0 32px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .dashboard-widgets {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 16px;
+        }
+        .widget {
+            background: #fff;
+            border: 1px solid var(--border-color, #ccc);
+            border-radius: 10px;
+            padding: 18px 16px;
+            min-width: 220px;
+            min-height: 120px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+        .widget-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .widget-actions {
+            margin-top: 8px;
+        }
+        .widget button, .widget input[type="button"] {
+            margin-right: 6px;
+            margin-top: 4px;
+        }
+        /* Spinner overlay */
+        #spinner-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.7);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #007bff;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg);}
+            100% { transform: rotate(360deg);}
+        }
+        /* Button animations */
+        button, .nav-links a, .nav-links button, .widget button {
+            transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+        }
+        button:hover, .nav-links a:hover, .nav-links button:hover, .widget button:hover {
+            background: var(--primary-color, #007bff);
+            color: #fff;
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 4px 16px rgba(0,123,255,0.08);
+        }
+        button:active, .nav-links a:active, .nav-links button:active, .widget button:active {
+            transform: scale(0.97);
+        }
+        /* Responsive */
+        @media (max-width: 900px) {
+            .dashboard-container { flex-direction: column; }
+            .dashboard-sidebar { margin-right: 0; margin-bottom: 24px; }
+        }
+        @media (max-width: 600px) {
+            .dashboard-widgets { grid-template-columns: 1fr; }
+            .dashboard-sidebar { min-width: 100vw; max-width: 100vw; }
+        }
+    </style>
+</head>
+<body>
+    <div id="spinner-overlay"><div class="spinner"></div></div>
+    <nav class="top-nav"></nav>
+    <div class="center-viewport">
+        <div class="dashboard-container">
+            <aside class="dashboard-sidebar">
+                <h2>Tools</h2>
+                <ul>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="editor.html">Professional Editor</a></li>
+                    <li><a href="text-reference-combiner.html">Text & Reference Combiner</a></li>
+                    <li><a href="#">Plagiarism Checker (Coming Soon)</a></li>
+                    <li><a href="#">Citation Generator (Coming Soon)</a></li>
+                    <li><a href="#">Outline Builder (Coming Soon)</a></li>
+                    <li><a href="#">Reference Library (Coming Soon)</a></li>
+                    <li><a href="#">PDF Annotator (Coming Soon)</a></li>
+                    <li><a href="#">Math Equation Editor (Coming Soon)</a></li>
+                    <li><a href="#">Reading Time Estimator (Coming Soon)</a></li>
+                    <li><a href="#">Accessibility Checker (Coming Soon)</a></li>
+                </ul>
+            </aside>
+            <main class="dashboard-main">
+                <h2>Welcome to AcademiaFlow!</h2>
+                <div class="dashboard-widgets">
+                    <!-- 1. Motivational Quote -->
+                    <div class="widget">
+                        <div class="widget-title">Motivational Quote</div>
+                        <div id="quote-text">Loading...</div>
+                        <div class="widget-actions">
+                            <button onclick="loadQuote()">New Quote</button>
+                        </div>
+                    </div>
+                    <!-- 2. Pomodoro Timer -->
+                    <div class="widget">
+                        <div class="widget-title">Pomodoro Timer</div>
+                        <div id="pomodoro-timer">25:00</div>
+                        <div class="widget-actions">
+                            <button onclick="startPomodoro()">Start</button>
+                            <button onclick="resetPomodoro()">Reset</button>
+                        </div>
+                    </div>
+                    <!-- 3. Today's Focus -->
+                    <div class="widget">
+                        <div class="widget-title">Today's Focus</div>
+                        <input id="focus-input" placeholder="What's your main goal today?" style="width:100%;">
+                        <div class="widget-actions">
+                            <button onclick="saveFocus()">Save</button>
+                        </div>
+                        <div id="focus-display" style="margin-top:8px; color:#007bff;"></div>
+                    </div>
+                    <!-- 4. Quick Notes -->
+                    <div class="widget">
+                        <div class="widget-title">Quick Notes</div>
+                        <textarea id="quick-notes" style="width:100%;height:60px;"></textarea>
+                        <div class="widget-actions">
+                            <button onclick="saveQuickNotes()">Save</button>
+                        </div>
+                    </div>
+                    <!-- 5. Calendar -->
+                    <div class="widget">
+                        <div class="widget-title">Calendar</div>
+                        <input type="date" id="calendar-date" style="width:100%;">
+                        <div id="calendar-event" style="margin-top:8px;"></div>
+                    </div>
+                    <!-- 6. To-Do List -->
+                    <div class="widget">
+                        <div class="widget-title">To-Do List</div>
+                        <ul id="todo-list"></ul>
+                        <input id="todo-input" placeholder="Add task..." style="width:70%;">
+                        <button onclick="addTodo()">Add</button>
+                    </div>
+                    <!-- 7. Recent Documents -->
+                    <div class="widget">
+                        <div class="widget-title">Recent Documents</div>
+                        <ul id="recent-docs"></ul>
+                    </div>
+                    <!-- 8. Favorites -->
+                    <div class="widget">
+                        <div class="widget-title">Favorites</div>
+                        <ul id="favorites"></ul>
+                    </div>
+                    <!-- 9. Word Goal -->
+                    <div class="widget">
+                        <div class="widget-title">Word Count Goal</div>
+                        <input id="word-goal-input" type="number" min="0" placeholder="Set goal..." style="width:70px;">
+                        <button onclick="saveWordGoal()">Set</button>
+                        <div id="word-goal-status" style="margin-top:8px;"></div>
+                    </div>
+                    <!-- 10. Profile -->
+                    <div class="widget">
+                        <div class="widget-title">Profile</div>
+                        <div id="profile"></div>
+                        <button onclick="logout()">Logout</button>
+                    </div>
+                    <!-- 11. Theme Switcher -->
+                    <div class="widget">
+                        <div class="widget-title">Theme Switcher</div>
+                        <button onclick="toggleTheme()">Toggle Dark/Light</button>
+                    </div>
+                    <!-- 12. Help & FAQ -->
+                    <div class="widget">
+                        <div class="widget-title">Help & FAQ</div>
+                        <a href="#">Read FAQ</a>
+                    </div>
+                    <!-- 13. Weather -->
+                    <div class="widget">
+                        <div class="widget-title">Weather</div>
+                        <div id="weather-widget">Loading...</div>
+                    </div>
+                    <!-- 14. Inspirational Quote -->
+                    <div class="widget">
+                        <div class="widget-title">Inspirational Quote</div>
+                        <div id="inspirational-quote">Loading...</div>
+                        <button onclick="loadInspirationalQuote()">New Quote</button>
+                    </div>
+                    <!-- 15. Sticky Notes -->
+                    <div class="widget">
+                        <div class="widget-title">Sticky Notes</div>
+                        <textarea id="sticky-notes" style="width:100%;height:40px;"></textarea>
+                        <button onclick="saveStickyNotes()">Save</button>
+                    </div>
+                    <!-- 16. Progress Tracker -->
+                    <div class="widget">
+                        <div class="widget-title">Progress Tracker</div>
+                        <progress id="progress-bar" value="0" max="100" style="width:100%;"></progress>
+                        <input id="progress-input" type="number" min="0" max="100" placeholder="%" style="width:60px;">
+                        <button onclick="updateProgress()">Update</button>
+                    </div>
+                    <!-- 17. Reading List -->
+                    <div class="widget">
+                        <div class="widget-title">Reading List</div>
+                        <ul id="reading-list"></ul>
+                        <input id="reading-input" placeholder="Add book/article..." style="width:70%;">
+                        <button onclick="addReading()">Add</button>
+                    </div>
+                    <!-- 18. Reference Library -->
+                    <div class="widget">
+                        <div class="widget-title">Reference Library</div>
+                        <ul id="reference-list"></ul>
+                        <input id="reference-input" placeholder="Add reference..." style="width:70%;">
+                        <button onclick="addReference()">Add</button>
+                    </div>
+                    <!-- 19. Citation Manager -->
+                    <div class="widget">
+                        <div class="widget-title">Citation Manager</div>
+                        <ul id="citation-list"></ul>
+                        <input id="citation-input" placeholder="Add citation..." style="width:70%;">
+                        <button onclick="addCitation()">Add</button>
+                    </div>
+                    <!-- 20. API Key Management -->
+                    <div class="widget">
+                        <div class="widget-title">API Key Management</div>
+                        <input id="api-key-input" placeholder="Enter API key..." style="width:70%;">
+                        <button onclick="saveApiKey()">Save</button>
+                        <div id="api-key-status" style="margin-top:8px;"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script>
+    // Header
+    renderHeader({
+        title: "AcademiaFlow Dashboard",
+        actions: [
+            { label: "Logout", href: "#", onclick: "logout()" }
+        ]
+    });
+
+    // Spinner utility
+    function showSpinner() { document.getElementById('spinner-overlay').style.display = 'flex'; }
+    function hideSpinner() { document.getElementById('spinner-overlay').style.display = 'none'; }
+
+    // Logout logic
+    function logout() {
+        showSpinner();
+        setTimeout(() => {
+            localStorage.removeItem('academictools_user');
+            hideSpinner();
+            window.location.href = "index.html";
+        }, 1200);
+    }
+
+    // Theme switcher
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+    }
+
+    // Motivational Quote
+    function loadQuote() {
+        const quotes = [
+            "Success is not the key to happiness. Happiness is the key to success.",
+            "The secret of getting ahead is getting started.",
+            "Don't watch the clock; do what it does. Keep going.",
+            "Dream big and dare to fail.",
+            "The best way to predict the future is to create it."
+        ];
+        document.getElementById('quote-text').textContent = quotes[Math.floor(Math.random() * quotes.length)];
+    }
+    loadQuote();
+
+    // Inspirational Quote
+    function loadInspirationalQuote() {
+        const quotes = [
+            "Believe you can and you're halfway there.",
+            "Act as if what you do makes a difference. It does.",
+            "Quality is not an act, it is a habit.",
+            "With the new day comes new strength and new thoughts.",
+            "Start where you are. Use what you have. Do what you can."
+        ];
+        document.getElementById('inspirational-quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
+    }
+    loadInspirationalQuote();
+
+    // Pomodoro Timer
+    let pomodoroInterval, pomodoroTime = 25 * 60;
+    function updatePomodoroDisplay() {
+        let min = Math.floor(pomodoroTime / 60);
+        let sec = pomodoroTime % 60;
+        document.getElementById('pomodoro-timer').textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+    }
+    function startPomodoro() {
+        if (pomodoroInterval) return;
+        pomodoroInterval = setInterval(() => {
+            if (pomodoroTime > 0) {
+                pomodoroTime--;
+                updatePomodoroDisplay();
+            } else {
+                clearInterval(pomodoroInterval);
+                pomodoroInterval = null;
+                alert("Pomodoro complete! Take a break.");
+            }
+        }, 1000);
+    }
+    function resetPomodoro() {
+        clearInterval(pomodoroInterval);
+        pomodoroInterval = null;
+        pomodoroTime = 25 * 60;
+        updatePomodoroDisplay();
+    }
+    updatePomodoroDisplay();
+
+    // Today's Focus
+    function saveFocus() {
+        const val = document.getElementById('focus-input').value;
+        localStorage.setItem('focus', val);
+        document.getElementById('focus-display').textContent = val ? "Today's focus: " + val : "";
+    }
+    document.getElementById('focus-input').value = localStorage.getItem('focus') || "";
+    document.getElementById('focus-display').textContent = localStorage.getItem('focus') ? "Today's focus: " + localStorage.getItem('focus') : "";
+
+    // Quick Notes
+    function saveQuickNotes() {
+        localStorage.setItem('quick_notes', document.getElementById('quick-notes').value);
+    }
+    document.getElementById('quick-notes').value = localStorage.getItem('quick_notes') || "";
+
+    // Calendar
+    document.getElementById('calendar-date').addEventListener('change', function() {
+        document.getElementById('calendar-event').textContent = "No events for this date.";
+    });
+
+    // To-Do List
+    function addTodo() {
+        const input = document.getElementById('todo-input');
+        const ul = document.getElementById('todo-list');
+        if (input.value.trim()) {
+            const li = document.createElement('li');
+            li.textContent = input.value;
+            li.onclick = function() { li.style.textDecoration = "line-through"; };
+            ul.appendChild(li);
+            input.value = '';
+            saveTodos();
+        }
+    }
+    function saveTodos() {
+        const items = [];
+        document.querySelectorAll('#todo-list li').forEach(li => items.push(li.textContent));
+        localStorage.setItem('todos', JSON.stringify(items));
+    }
+    function loadTodos() {
+        const items = JSON.parse(localStorage.getItem('todos') || "[]");
+        const ul = document.getElementById('todo-list');
+        ul.innerHTML = "";
+        items.forEach(text => {
+            const li = document.createElement('li');
+            li.textContent = text;
+            li.onclick = function() { li.style.textDecoration = "line-through"; };
+            ul.appendChild(li);
+        });
+    }
+    loadTodos();
+
+    // Recent Documents (placeholder)
+    document.getElementById('recent-docs').innerHTML = "<li>Essay Draft.docx</li><li>Research Notes.md</li><li>Summary.pdf</li>";
+
+    // Favorites (placeholder)
+    document.getElementById('favorites').innerHTML = "<li>Editor</li><li>Text & Reference Combiner</li>";
+
+    // Word Goal
+    function saveWordGoal() {
+        const val = document.getElementById('word-goal-input').value;
+        localStorage.setItem('word_goal', val);
+        document.getElementById('word-goal-status').textContent = val ? "Goal set: " + val + " words" : "";
+    }
+    document.getElementById('word-goal-input').value = localStorage.getItem('word_goal') || "";
+    document.getElementById('word-goal-status').textContent = localStorage.getItem('word_goal') ? "Goal set: " + localStorage.getItem('word_goal') + " words" : "";
+
+    // Profile
+    document.getElementById('profile').innerHTML = "User: " + (localStorage.getItem('academictools_user') || "Guest");
+
+    // Weather (demo, static)
+    document.getElementById('weather-widget').textContent = "🌤️ 22°C, Clear";
+
+    // Sticky Notes
+    function saveStickyNotes() {
+        localStorage.setItem('sticky_notes', document.getElementById('sticky-notes').value);
+    }
+    document.getElementById('sticky-notes').value = localStorage.getItem('sticky_notes') || "";
+
+    // Progress Tracker
+    function updateProgress() {
+        const val = document.getElementById('progress-input').value;
+        document.getElementById('progress-bar').value = val;
+    }
+
+    // Reading List
+    function addReading() {
+        const input = document.getElementById('reading-input');
+        const ul = document.getElementById('reading-list');
+        if (input.value.trim()) {
+            const li = document.createElement('li');
+            li.textContent = input.value;
+            ul.appendChild(li);
+            input.value = '';
+            saveReadingList();
+        }
+    }
+    function saveReadingList() {
+        const items = [];
+        document.querySelectorAll('#reading-list li').forEach(li => items.push(li.textContent));
+        localStorage.setItem('reading_list', JSON.stringify(items));
+    }
+    function loadReadingList() {
+        const items = JSON.parse(localStorage.getItem('reading_list') || "[]");
+        const ul = document.getElementById('reading-list');
+        ul.innerHTML = "";
+        items.forEach(text => {
+            const li = document.createElement('li');
+            li.textContent = text;
+            ul.appendChild(li);
+        });
+    }
+    loadReadingList();
+
+    // Reference Library
+    function addReference() {
+        const input = document.getElementById('reference-input');
+        const ul = document.getElementById('reference-list');
+        if (input.value.trim()) {
+            const li = document.createElement('li');
+            li.textContent = input.value;
+            ul.appendChild(li);
+            input.value = '';
+            saveReferenceList();
+        }
+    }
+    function saveReferenceList() {
+        const items = [];
+        document.querySelectorAll('#reference-list li').forEach(li => items.push(li.textContent));
+        localStorage.setItem('reference_list', JSON.stringify(items));
+    }
+    function loadReferenceList() {
+        const items = JSON.parse(localStorage.getItem('reference_list') || "[]");
+        const ul = document.getElementById('reference-list');
+        ul.innerHTML = "";
+        items.forEach(text => {
+            const li = document.createElement('li');
+            li.textContent = text;
+            ul.appendChild(li);
+        });
+    }
+    loadReferenceList();
+
+    // Citation Manager
+    function addCitation() {
+        const input = document.getElementById('citation-input');
+        const ul = document.getElementById('citation-list');
+        if (input.value.trim()) {
+            const li = document.createElement('li');
+            li.textContent = input.value;
+            ul.appendChild(li);
+            input.value = '';
+            saveCitationList();
+        }
+    }
+    function saveCitationList() {
+        const items = [];
+        document.querySelectorAll('#citation-list li').forEach(li => items.push(li.textContent));
+        localStorage.setItem('citation_list', JSON.stringify(items));
+    }
+    function loadCitationList() {
+        const items = JSON.parse(localStorage.getItem('citation_list') || "[]");
+        const ul = document.getElementById('citation-list');
+        ul.innerHTML = "";
+        items.forEach(text => {
+            const li = document.createElement('li');
+            li.textContent = text;
+            ul.appendChild(li);
+        });
+    }
+    loadCitationList();
+
+    // API Key Management
+    function saveApiKey() {
+        const val = document.getElementById('api-key-input').value;
+        localStorage.setItem('api_key', val);
+        document.getElementById('api-key-status').textContent = val ? "API key saved." : "";
+    }
+    document.getElementById('api-key-input').value = localStorage.getItem('api_key') || "";
+    document.getElementById('api-key-status').textContent = localStorage.getItem('api_key') ? "API key saved." : "";
+
+    // On load, restore sticky notes, todos, etc.
+    window.onload = function() {
+        document.getElementById('quick-notes').value = localStorage.getItem('quick_notes') || "";
+        document.getElementById('sticky-notes').value = localStorage.getItem('sticky_notes') || "";
+        loadTodos();
+        loadReadingList();
+        loadReferenceList();
+        loadCitationList();
+    };
+    </script>
+</body>
+</html>
