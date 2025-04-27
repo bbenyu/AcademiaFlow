@@ -20,9 +20,18 @@
         <h1>Text Combiner for Researchers</h1>
         <p id="motivational-tip"></p>
         <div class="dashboard">
+            <div id="goal-tracker">
+                <span>Set a word count goal and track progress!</span>
+                <input type="number" id="word-goal" min="1" placeholder="e.g., 1000" aria-label="Word count goal">
+            </div>
+            <div id="goal-progress">Goal: <span id="goal-value">0</span> | Current: <span id="current-words">0</span></div>
+            <div id="timer-section">
+                <span id="timer-display">25:00</span>
+                <button onclick="startTimer()" aria-label="Start timer">Start</button>
+                <button onclick="stopTimer()" aria-label="Stop timer">Stop</button>
+            </div>
             Progress: <span id="progress">0%</span>
         </div>
-        <input type="file" id="import-citations" accept=".bib,.ris" aria-label="Import citations">
         <div id="snippets-container" class="grid-container">
             <div class="snippet" draggable="true">
                 <h3 class="snippet-header">Text Snippet 1</h3>
@@ -40,6 +49,7 @@
                 <div class="tooltip">
                     <input type="text" id="ref1" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 1">
                     <span class="tooltiptext" id="ref-tooltip1"></span>
+                    <button onclick="formatCitation(1)" aria-label="Format citation for Snippet 1">Format</button>
                 </div>
                 <span id="error1" class="error"></span>
                 <span id="correct1" class="correct">Correct</span>
@@ -60,6 +70,7 @@
                 <div class="tooltip">
                     <input type="text" id="ref2" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 2">
                     <span class="tooltiptext" id="ref-tooltip2"></span>
+                    <button onclick="formatCitation(2)" aria-label="Format citation for Snippet 2">Format</button>
                 </div>
                 <span id="error2" class="error"></span>
                 <span id="correct2" class="correct">Correct</span>
@@ -80,6 +91,7 @@
                 <div class="tooltip">
                     <input type="text" id="ref3" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 3">
                     <span class="tooltiptext" id="ref-tooltip3"></span>
+                    <button onclick="formatCitation(3)" aria-label="Format citation for Snippet 3">Format</button>
                 </div>
                 <span id="error3" class="error"></span>
                 <span id="correct3" class="correct">Correct</span>
@@ -107,6 +119,7 @@
             <h4>Settings</h4>
             <button onclick="savePreferences()" aria-label="Save preferences">Save Preferences</button>
             <button onclick="showRequestForm()" aria-label="Request a feature">Request Feature</button>
+            <button onclick="showReferenceLibrary()" aria-label="Open reference library">Reference Library</button>
         </div>
         <div id="output-modal" role="dialog" aria-label="Result dialog">
             <div id="output-content">
@@ -146,12 +159,30 @@
             <button onclick="saveCustomStyle()">Save</button>
             <button onclick="closeCustomStyleModal()">Cancel</button>
         </div>
+        <div id="citation-format-modal">
+            <h3>Format Citation</h3>
+            <input type="text" id="format-author" placeholder="Author" aria-label="Author">
+            <input type="text" id="format-year" placeholder="Year" aria-label="Year">
+            <input type="text" id="format-title" placeholder="Title" aria-label="Title">
+            <input type="text" id="format-journal" placeholder="Journal (optional)" aria-label="Journal">
+            <button onclick="applyFormattedCitation()">Apply</button>
+            <button onclick="closeCitationFormatModal()">Cancel</button>
+        </div>
+        <div id="reference-library-modal">
+            <h3>Reference Library</h3>
+            <input type="text" id="library-ref" placeholder="Add reference (e.g., Smith, 2020, Title)" aria-label="Add reference">
+            <input type="text" id="library-tag" placeholder="Tag (e.g., Project A)" aria-label="Reference tag">
+            <button onclick="addReferenceToLibrary()">Add</button>
+            <div id="library-list"></div>
+            <button onclick="closeReferenceLibrary()">Close</button>
+        </div>
         <div id="request-form">
             <h3>Request a Feature</h3>
             <textarea id="feature-request" placeholder="Describe your feature idea. Optionally, attach a screenshot of the tool." aria-label="Feature request"></textarea>
             <button onclick="submitRequest()">Submit</button>
             <button onclick="closeRequestForm()">Cancel</button>
         </div>
+        <div id="goal-reached">✔</div>
     </div>
     <script src="script.js"></script>
 </body>
