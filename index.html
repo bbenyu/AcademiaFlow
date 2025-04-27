@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Text Combiner for Researchers</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        textarea { width: 80%; height: 100px; margin: 10px; }
+        input { margin: 5px; width: 80%; }
+        button { padding: 10px 20px; margin-top: 10px; }
+        #output { margin-top: 20px; white-space: pre-wrap; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>Text Combiner for Researchers</h1>
+    <div>
+        <h3>Text Snippet 1</h3>
+        <textarea id="snippet1" placeholder="Paste your first text snippet here"></textarea>
+        <input type="text" id="ref1" placeholder="Reference (e.g., Smith, 2020, Journal of Research)">
+    </div>
+    <div>
+        <h3>Text Snippet 2</h3>
+        <textarea id="snippet2" placeholder="Paste your second text snippet here"></textarea>
+        <input type="text" id="ref2" placeholder="Reference (e.g., Johnson, 2021, Science Today)">
+    </div>
+    <div>
+        <h3>Text Snippet 3</h3>
+        <textarea id="snippet3" placeholder="Paste your third text snippet here"></textarea>
+        <input type="text" id="ref3" placeholder="Reference (e.g., Lee, 2022, Academic Review)">
+    </div>
+    <label for="citationStyle">Citation Style:</label>
+    <select id="citationStyle">
+        <option value="apa">APA</option>
+        <option value="mla">MLA</option>
+    </select>
+    <button onclick="combineText()">Combine & Generate Bibliography</button>
+    <div id="output"></div>
+    <script src="script.js"></script>
+</body>
+</html>
