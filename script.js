@@ -8,6 +8,7 @@ let timerInterval = null;
 let timerSeconds = 25 * 60;
 let isWorkSession = true;
 let currentCitationIndex = null;
+let goalReached = JSON.parse(localStorage.getItem('goalReached')) || false;
 
 function setCookie(name, value, days) {
     let expires = "";
@@ -36,7 +37,7 @@ function countWords(text) {
 }
 
 function addSnippet() {
-    if (countWords(document.getElementById(`snippet${snippetCount}`).value) > 5000) {
+    if (countWords(document.getElementById(`snippet${snippetCount}`)?.value || '') > 5000) {
         alert('Snippet exceeds 5000 words.');
         return;
     }
@@ -45,6 +46,7 @@ function addSnippet() {
     const newSnippet = document.createElement('div');
     newSnippet.className = 'snippet';
     newSnippet.draggable = true;
+    newSnippet.setAttribute('tabindex', '0');
     newSnippet.innerHTML = `
         <h3 class="snippet-header">Text Snippet ${snippetCount}</h3>
         <textarea id="snippet${snippetCount}" class="snippet-content" aria-label="Text Snippet ${snippetCount}"></textarea>
@@ -141,7 +143,7 @@ function validateReference(ref, style, index) {
 function updateValidation(index) {
     clearTimeout(validationTimeouts[index]);
     validationTimeouts[index] = setTimeout(() => {
-        const ref = document.getElementById(`ref${index}`).value;
+        const ref = document.getElementById(`ref${index}`)?.value || '';
         validateReference(ref, document.getElementById('citationStyle').value, index - 1);
     }, 500);
 }
@@ -212,16 +214,16 @@ function updatePreview() {
         const snippet = document.getElementById(`snippet${i}`)?.value || '';
         const ref = document.getElementById(`ref${i}`)?.value || '';
         const source = document.getElementById(`source${i}`)?.value || '';
-        if (snippet && ref) {
+        if (snippet || ref) {
             snippets.push(snippet);
             references.push(ref);
             sources.push(source);
         }
     }
     const style = document.getElementById('citationStyle').value;
-    const combined = snippets.map((s, i) => `${s} (${references[i].split(",")[0]}, ${references[i].split(",")[1]})`).join("\n\n");
+    const combined = snippets.map((s, i) => `${s}${references[i] ? ` (${references[i].split(',')[0] || 'Author'}, ${references[i].split(',')[1] || 'Year'})` : ''}`).join('\n\n');
     const bibliography = generateBibliography(references, sources, style);
-    const outputText = combined + (bibliography ? "\n\nBibliography:\n" + bibliography : '');
+    const outputText = combined + (bibliography ? '\n\nBibliography:\n' + bibliography : '');
     document.getElementById('preview-content').innerText = outputText;
     updateWordCounts();
     updateGoalProgress();
@@ -265,24 +267,24 @@ function combineText() {
     const sources = [];
     const invalidRefs = [];
     for (let i = 1; i <= snippetCount; i++) {
-        const snippet = document.getElementById(`snippet${i}`).value;
-        const ref = document.getElementById(`ref${i}`).value;
-        const source = document.getElementById(`source${i}`).value;
+        const snippet = document.getElementById(`snippet${i}`)?.value || '';
+        const ref = document.getElementById(`ref${i}`)?.value || '';
+        const source = document.getElementById(`source${i}`)?.value || '';
         if (countWords(snippet) > 5000) {
             alert(`Snippet ${i} exceeds 5000 words.`);
             return;
         }
-        if (snippet && ref) {
+        if (snippet || ref) {
             snippets.push(snippet);
             references.push(ref);
             sources.push(source);
-            if (!validateReference(ref, document.getElementById('citationStyle').value, i - 1)) {
+            if (ref && !validateReference(ref, document.getElementById('citationStyle').value, i - 1)) {
                 invalidRefs.push(i);
             }
         }
     }
     const style = document.getElementById('citationStyle').value;
-    const combined = snippets.map((s, i) => `${s} (${references[i].split(",")[0]}, ${references[i].split(",")[1]})`).join("\n\n");
+    const combined = snippets.map((s, i) => `${s}${references[i] ? ` (${references[i].split(",")[0] || 'Author'}, ${references[i].split(",")[1] || 'Year'})` : ''}`).join("\n\n");
     const bibliography = generateBibliography(references, sources, style);
     const outputText = combined + (bibliography ? "\n\nBibliography:\n" + bibliography : '');
     document.getElementById('output-text').innerHTML = outputText.replace(/\n/g, '<br>');
@@ -310,16 +312,21 @@ function formatRanges(numbers) {
 }
 
 function updateWordCounts() {
+    let totalWords = 0;
     for (let i = 1; i <= snippetCount; i++) {
         const snippet = document.getElementById(`snippet${i}`)?.value || '';
         const wordCountSpan = document.getElementById(`word-count${i}`);
-        if (wordCountSpan) wordCountSpan.innerText = `Words: ${countWords(snippet)}`;
+        if (wordCountSpan) {
+            const count = countWords(snippet);
+            wordCountSpan.innerText = `Words: ${count}`;
+            totalWords += count;
+        }
     }
     const outputText = document.getElementById('output-text').innerText;
     const snippetsOnly = outputText.split('\n\nBibliography:\n')[0]?.replace(/\([\w\s,]+\)/g, '') || '';
-    const totalWords = countWords(outputText);
+    const totalOutputWords = countWords(outputText);
     const snippetsWords = countWords(snippetsOnly);
-    document.getElementById('word-count-output').innerText = `Total Words: ${totalWords} (Excluding Citations: ${snippetsWords})`;
+    document.getElementById('word-count-output').innerText = `Total Words: ${totalOutputWords} (Excluding Citations: ${snippetsWords})`;
 }
 
 function updateGoalProgress() {
@@ -332,13 +339,30 @@ function updateGoalProgress() {
     document.getElementById('goal-value').innerText = wordGoal;
     const currentWordsSpan = document.getElementById('current-words');
     const goalValueSpan = document.getElementById('goal-value');
+    const underGoalSpan = document.createElement('span');
+    underGoalSpan.id = 'under-goal';
+    underGoalSpan.style.color = '#ffeb3b';
+    underGoalSpan.innerText = ' (Under goal)';
+    
     if (totalWords >= wordGoal && wordGoal > 0) {
         currentWordsSpan.classList.add('goal-reached');
         goalValueSpan.classList.add('goal-reached');
-        showGoalReached();
+        if (!goalReached) {
+            showGoalReached();
+            goalReached = true;
+            localStorage.setItem('goalReached', true);
+        }
+        const existingUnderGoal = document.getElementById('under-goal');
+        if (existingUnderGoal) existingUnderGoal.remove();
     } else {
         currentWordsSpan.classList.remove('goal-reached');
         goalValueSpan.classList.remove('goal-reached');
+        goalReached = false;
+        localStorage.setItem('goalReached', false);
+        const progressDiv = document.getElementById('goal-progress');
+        if (!document.getElementById('under-goal')) {
+            progressDiv.appendChild(underGoalSpan);
+        }
     }
 }
 
@@ -361,114 +385,6 @@ function updateProgress() {
     document.getElementById('progress').innerText = `${Math.round((completed / total) * 100)}%`;
 }
 
-// Storage management
-function checkStorageCapacity() {
-    const used = JSON.stringify(localStorage).length;
-    const limit = 5 * 1024 * 1024; // 5MB
-    if (used > 0.8 * limit) {
-        alert('Storage is nearly full! Please export your project to avoid data loss.');
-    }
-    return used < limit;
-}
-
-function autoSave() {
-    const snippets = [];
-    for (let i = 1; i <= snippetCount; i++) {
-        snippets.push({
-            snippet: document.getElementById(`snippet${i}`)?.value || '',
-            ref: document.getElementById(`ref${i}`)?.value || '',
-            source: document.getElementById(`source${i}`)?.value || ''
-        });
-    }
-    const data = { snippets, snippetCount };
-    const compressed = LZString.compressToUTF16(JSON.stringify(data));
-    if (checkStorageCapacity()) {
-        localStorage.setItem('autoSave', compressed);
-    } else {
-        // Fallback to IndexedDB
-        saveToIndexedDB(data);
-    }
-}
-
-function loadAutoSave() {
-    let saved = localStorage.getItem('autoSave');
-    if (saved) {
-        saved = JSON.parse(LZString.decompressFromUTF16(saved));
-    } else {
-        saved = loadFromIndexedDB();
-    }
-    if (saved) {
-        snippetCount = saved.snippetCount;
-        const container = document.getElementById('snippets-container');
-        container.innerHTML = '';
-        saved.snippets.forEach((item, i) => {
-            const index = i + 1;
-            const newSnippet = document.createElement('div');
-            newSnippet.className = 'snippet';
-            newSnippet.draggable = true;
-            newSnippet.innerHTML = `
-                <h3 class="snippet-header">Text Snippet ${index}</h3>
-                <textarea id="snippet${index}" class="snippet-content" aria-label="Text Snippet ${index}">${item.snippet}</textarea>
-                <div class="snippet-meta">
-                    <span id="word-count${index}">Words: ${countWords(item.snippet)}</span>
-                    <div><label>Category:</label></div>
-                    <select id="source${index}" aria-label="Source type for Snippet ${index}">
-                        <option value="book" ${item.source === 'book' ? 'selected' : ''}>Book</option>
-                        <option value="journal" ${item.source === 'journal' ? 'selected' : ''}>Journal</option>
-                        <option value="website" ${item.source === 'website' ? 'selected' : ''}>Website</option>
-                        <option value="other" ${item.source === 'other' ? 'selected' : ''}>Other</option>
-                    </select>
-                </div>
-                <div class="tooltip">
-                    <input type="text" id="ref${index}" placeholder="${getPlaceholder()}" value="${item.ref}" aria-label="Reference for Snippet ${index}">
-                    <span class="tooltiptext" id="ref-tooltip${index}"></span>
-                    <button onclick="formatCitation(${index})" aria-label="Format citation for Snippet ${index}">Format</button>
-                </div>
-                <span id="error${index}" class="error"></span>
-                <span id="correct${index}" class="correct">Correct</span>
-            `;
-            container.appendChild(newSnippet);
-            addDragEvents(newSnippet);
-        });
-        updateAutoAdd();
-        updatePreview();
-        updateValidation();
-    }
-}
-
-// IndexedDB Implementation
-let db;
-function initIndexedDB() {
-    const request = indexedDB.open('TextCombinerDB', 1);
-    request.onupgradeneeded = event => {
-        db = event.target.result;
-        db.createObjectStore('projects', { keyPath: 'id' });
-    };
-    request.onsuccess = event => {
-        db = event.target.result;
-    };
-    request.onerror = () => console.error('IndexedDB failed to initialize');
-}
-
-function saveToIndexedDB(data) {
-    const transaction = db.transaction(['projects'], 'readwrite');
-    const store = transaction.objectStore('projects');
-    store.put({ id: 'autoSave', data });
-}
-
-function loadFromIndexedDB() {
-    return new Promise(resolve => {
-        const transaction = db.transaction(['projects'], 'readonly');
-        const store = transaction.objectStore('projects');
-        const request = store.get('autoSave');
-        request.onsuccess = () => resolve(request.result?.data || null);
-        request.onerror = () => resolve(null);
-    });
-}
-
-// Initialize IndexedDB on load
-initIndexedDB();
-
 function updateExportPreview(text) {
     document.getElementById('export-preview').innerText = `Export Preview:\n${text.slice(0, 100)}...`;
 }
@@ -480,16 +396,35 @@ function closeModal() {
 }
 
 function copyText() {
-    const text = document.getElementById('output-text').innerText;
-    navigator.clipboard.writeText(text).then(() => {
-        const message = document.getElementById('copy-message');
-        message.style.display = 'inline';
-        setTimeout(() => message.style.display = 'none', 2000);
-        setCookie('lastSave', 'clipboard', 30);
-    });
+    try {
+        const text = document.getElementById('output-text').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const message = document.getElementById('copy-message');
+            message.style.display = 'inline';
+            setTimeout(() => message.style.display = 'none', 2000);
+            setCookie('lastSave', 'clipboard', 30);
+        });
+    } catch (e) {
+        console.error('Copy failed:', e);
+        localStorage.setItem('lastError', `Copy: ${e.message}`);
+        alert('Failed to copy text. Please try again.');
+    }
 }
 
-// script.js: Example for saveDocx and savePDF
+function savePDF() {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text(document.getElementById('output-text').innerText, 10, 10);
+        doc.save('research_synthesis.pdf');
+        setCookie('lastSave', 'pdf', 30);
+    } catch (e) {
+        console.error('PDF export failed:', e);
+        localStorage.setItem('lastError', `PDF export: ${e.message}`);
+        alert('Failed to generate PDF. Please try again or export as text.');
+    }
+}
+
 function saveDocx() {
     try {
         const text = document.getElementById('output-text').innerText;
@@ -511,122 +446,144 @@ function saveDocx() {
     }
 }
 
-function savePDF() {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text(document.getElementById('output-text').innerText, 10, 10);
-        doc.save('research_synthesis.pdf');
-        setCookie('lastSave', 'pdf', 30);
-    } catch (e) {
-        console.error('PDF export failed:', e);
-        localStorage.setItem('lastError', `PDF export: ${e.message}`);
-        alert('Failed to generate PDF. Please try again or export as text.');
-    }
-}
-
 function saveText() {
-    const text = document.getElementById('output-text').innerText;
-    const blob = new Blob([text], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'research_synthesis.txt';
-    link.click();
-    setCookie('lastSave', 'text', 30);
+    try {
+        const text = document.getElementById('output-text').innerText;
+        const blob = new Blob([text], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'research_synthesis.txt';
+        link.click();
+        setCookie('lastSave', 'text', 30);
+    } catch (e) {
+        console.error('Text export failed:', e);
+        localStorage.setItem('lastError', `Text export: ${e.message}`);
+        alert('Failed to export text. Please try again.');
+    }
 }
 
 function saveMarkdown() {
-    const text = document.getElementById('output-text').innerText;
-    const markdown = text.replace(/^Bibliography:\n/, '## Bibliography\n');
-    const blob = new Blob([markdown], { type: 'text/markdown' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'research_synthesis.md';
-    link.click();
-    setCookie('lastSave', 'markdown', 30);
+    try {
+        const text = document.getElementById('output-text').innerText;
+        const markdown = text.replace(/^Bibliography:\n/, '## Bibliography\n');
+        const blob = new Blob([markdown], { type: 'text/markdown' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'research_synthesis.md';
+        link.click();
+        setCookie('lastSave', 'markdown', 30);
+    } catch (e) {
+        console.error('Markdown export failed:', e);
+        localStorage.setItem('lastError', `Markdown export: ${e.message}`);
+        alert('Failed to export Markdown. Please try again.');
+    }
 }
 
 function saveRIS() {
-    const references = [];
-    for (let i = 1; i <= snippetCount; i++) {
-        const ref = document.getElementById(`ref${i}`).value;
-        if (ref) references.push(ref);
+    try {
+        const references = [];
+        for (let i = 1; i <= snippetCount; i++) {
+            const ref = document.getElementById(`ref${i}`)?.value || '';
+            if (ref) references.push(ref);
+        }
+        let ris = '';
+        references.forEach(ref => {
+            const parts = ref.split(",").map(p => p.trim());
+            ris += `TY  - JOUR\nAU  - ${parts[0]}\nPY  - ${parts[1]}\nTI  - ${parts[2] || "Untitled"}\nER  -\n\n`;
+        });
+        const blob = new Blob([ris], { type: 'application/x-research-info-systems' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'research_synthesis.ris';
+        link.click();
+        setCookie('lastSave', 'ris', 30);
+    } catch (e) {
+        console.error('RIS export failed:', e);
+        localStorage.setItem('lastError', `RIS export: ${e.message}`);
+        alert('Failed to export RIS. Please try again.');
     }
-    let ris = '';
-    references.forEach(ref => {
-        const parts = ref.split(",").map(p => p.trim());
-        ris += `TY  - JOUR\nAU  - ${parts[0]}\nPY  - ${parts[1]}\nTI  - ${parts[2] || "Untitled"}\nER  -\n\n`;
-    });
-    const blob = new Blob([ris], { type: 'application/x-research-info-systems' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'research_synthesis.ris';
-    link.click();
-    setCookie('lastSave', 'ris', 30);
 }
 
 function saveLatex() {
-    const text = document.getElementById('output-text').innerText;
-    const latex = `\\documentclass{article}\n\\begin{document}\n${text.replace(/\n/g, '\\\\\n')}\n\\end{document}`;
-    const blob = new Blob([latex], { type: 'application/x-tex' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'research_synthesis.tex';
-    link.click();
-    setCookie('lastSave', 'latex', 30);
+    try {
+        const text = document.getElementById('output-text').innerText;
+        const latex = `\\documentclass{article}\n\\begin{document}\n${text.replace(/\n/g, '\\\\\n')}\n\\end{document}`;
+        const blob = new Blob([latex], { type: 'application/x-tex' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'research_synthesis.tex';
+        link.click();
+        setCookie('lastSave', 'latex', 30);
+    } catch (e) {
+        console.error('LaTeX export failed:', e);
+        localStorage.setItem('lastError', `LaTeX export: ${e.message}`);
+        alert('Failed to export LaTeX. Please try again.');
+    }
 }
 
 function saveFlashcards() {
-    const snippets = [];
-    const references = [];
-    for (let i = 1; i <= snippetCount; i++) {
-        const snippet = document.getElementById(`snippet${i}`).value;
-        const ref = document.getElementById(`ref${i}`).value;
-        if (snippet && ref) {
-            snippets.push(snippet);
-            references.push(ref);
+    try {
+        const snippets = [];
+        const references = [];
+        for (let i = 1; i <= snippetCount; i++) {
+            const snippet = document.getElementById(`snippet${i}`)?.value || '';
+            const ref = document.getElementById(`ref${i}`)?.value || '';
+            if (snippet && ref) {
+                snippets.push(snippet);
+                references.push(ref);
+            }
         }
+        const text = snippets.map((s, i) => `${s}\t${references[i]}`).join('\n');
+        const blob = new Blob([text], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'research_synthesis_flashcards.txt';
+        link.click();
+        setCookie('lastSave', 'flashcards', 30);
+    } catch (e) {
+        console.error('Flashcards export failed:', e);
+        localStorage.setItem('lastError', `Flashcards export: ${e.message}`);
+        alert('Failed to export flashcards. Please try again.');
     }
-    const text = snippets.map((s, i) => `${s}\t${references[i]}`).join('\n');
-    const blob = new Blob([text], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'research_synthesis_flashcards.txt';
-    link.click();
-    setCookie('lastSave', 'flashcards', 30);
 }
 
 function saveZip() {
-    const zip = new JSZip();
-    const text = document.getElementById('output-text').innerText;
-    zip.file('research_synthesis.txt', text);
-    zip.file('research_synthesis.md', text.replace(/^Bibliography:\n/, '## Bibliography\n'));
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.text(text, 10, 10);
-    zip.file('research_synthesis.pdf', doc.output('blob'));
-    const docx = new docxtemplater(new JSZip(), { paragraphLoop: true });
-    const content = `
-        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-            <w:body>
-                <w:p><w:r><w:t>${text.replace(/\n/g, '</w:t></w:r></w:p><w:p><w:r><w:t>')}</w:t></w:r></w:p>
-            </w:body>
-        </w:document>`;
-    docx.loadZip(new JSZip()).setData(content).render();
-    zip.file('research_synthesis.docx', docx.getZip().generate({ type: 'blob' }));
-    let ris = '';
-    for (let i = 1; i <= snippetCount; i++) {
-        const ref = document.getElementById(`ref${i}`).value;
-        if (ref) {
-            const parts = ref.split(",").map(p => p.trim());
-            ris += `TY  - JOUR\nAU  - ${parts[0]}\nPY  - ${parts[1]}\nTI  - ${parts[2] || "Untitled"}\nER  -\n\n`;
+    try {
+        const zip = new JSZip();
+        const text = document.getElementById('output-text').innerText;
+        zip.file('research_synthesis.txt', text);
+        zip.file('research_synthesis.md', text.replace(/^Bibliography:\n/, '## Bibliography\n'));
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text(text, 10, 10);
+        zip.file('research_synthesis.pdf', doc.output('blob'));
+        const docx = new docxtemplater(new JSZip(), { paragraphLoop: true });
+        const content = `
+            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                <w:body>
+                    <w:p><w:r><w:t>${text.replace(/\n/g, '</w:t></w:r></w:p><w:p><w:r><w:t>')}</w:t></w:r></w:p>
+                </w:body>
+            </w:document>`;
+        docx.loadZip(new JSZip()).setData(content).render();
+        zip.file('research_synthesis.docx', docx.getZip().generate({ type: 'blob' }));
+        let ris = '';
+        for (let i = 1; i <= snippetCount; i++) {
+            const ref = document.getElementById(`ref${i}`)?.value || '';
+            if (ref) {
+                const parts = ref.split(",").map(p => p.trim());
+                ris += `TY  - JOUR\nAU  - ${parts[0]}\nPY  - ${parts[1]}\nTI  - ${parts[2] || "Untitled"}\nER  -\n\n`;
+            }
         }
+        zip.file('research_synthesis.ris', ris);
+        zip.generateAsync({ type: 'blob' }).then(blob => {
+            saveAs(blob, 'research_synthesis.zip');
+        });
+        setCookie('lastSave', 'zip', 30);
+    } catch (e) {
+        console.error('ZIP export failed:', e);
+        localStorage.setItem('lastError', `ZIP export: ${e.message}`);
+        alert('Failed to export ZIP. Please try again.');
     }
-    zip.file('research_synthesis.ris', ris);
-    zip.generateAsync({ type: 'blob' }).then(blob => {
-        saveAs(blob, 'research_synthesis.zip');
-    });
-    setCookie('lastSave', 'zip', 30);
 }
 
 function saveToGoogleDrive() {
@@ -645,12 +602,18 @@ function saveToOneDrive() {
 }
 
 function shareSecurely() {
-    const text = document.getElementById('output-text').innerText;
-    const password = prompt('Enter a password for secure sharing:');
-    if (password) {
-        const encrypted = btoa(text + '|' + password);
-        const url = `${window.location.href}#${encrypted}`;
-        navigator.clipboard.writeText(url).then(() => alert('Secure URL copied to clipboard.'));
+    try {
+        const text = document.getElementById('output-text').innerText;
+        const password = prompt('Enter a password for secure sharing:');
+        if (password) {
+            const encrypted = btoa(text + '|' + password);
+            const url = `${window.location.href}#${encrypted}`;
+            navigator.clipboard.writeText(url).then(() => alert('Secure URL copied to clipboard.'));
+        }
+    } catch (e) {
+        console.error('Share failed:', e);
+        localStorage.setItem('lastError', `Share: ${e.message}`);
+        alert('Failed to share securely. Please try again.');
     }
 }
 
@@ -718,15 +681,22 @@ function loadReferenceLibrary() {
     const library = JSON.parse(localStorage.getItem('referenceLibrary')) || [];
     const list = document.getElementById('library-list');
     list.innerHTML = '';
-    library.forEach((item, i) => {
-        const div = document.createElement('div');
-        div.innerHTML = `
-            ${item.ref} (${item.tag || 'No tag'})
-            <button onclick="applyReference(${i})">Apply</button>
-            <button onclick="deleteReference(${i})">Delete</button>
+    const search = document.getElementById('library-search').value.toLowerCase();
+    library.filter(item => item.ref.toLowerCase().includes(search) || (item.tag || '').toLowerCase().includes(search)).forEach((item, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="checkbox" class="library-select" data-index="${i}"></td>
+            <td>${item.ref}</td>
+            <td>${item.tag || 'No tag'}</td>
+            <td>
+                <button onclick="applyReference(${i})">Apply</button>
+                <button onclick="editReference(${i})">Edit</button>
+                <button onclick="deleteReference(${i})">Delete</button>
+            </td>
         `;
-        list.appendChild(div);
+        list.appendChild(tr);
     });
+    document.getElementById('select-all').checked = false;
 }
 
 function applyReference(index) {
@@ -740,9 +710,37 @@ function applyReference(index) {
     }
 }
 
+function editReference(index) {
+    const library = JSON.parse(localStorage.getItem('referenceLibrary')) || [];
+    const ref = prompt('Edit reference:', library[index].ref);
+    const tag = prompt('Edit tag:', library[index].tag || '');
+    if (ref) {
+        library[index] = { ref, tag };
+        localStorage.setItem('referenceLibrary', JSON.stringify(library));
+        loadReferenceLibrary();
+    }
+}
+
 function deleteReference(index) {
     const library = JSON.parse(localStorage.getItem('referenceLibrary')) || [];
     library.splice(index, 1);
+    localStorage.setItem('referenceLibrary', JSON.stringify(library));
+    loadReferenceLibrary();
+}
+
+function deleteSelectedReferences() {
+    const library = JSON.parse(localStorage.getItem('referenceLibrary')) || [];
+    const selected = Array.from(document.querySelectorAll('.library-select:checked')).map(cb => parseInt(cb.dataset.index));
+    if (selected.length && confirm('Delete selected references?')) {
+        selected.sort((a, b) => b - a).forEach(i => library.splice(i, 1));
+        localStorage.setItem('referenceLibrary', JSON.stringify(library));
+        loadReferenceLibrary();
+    }
+}
+
+function sortLibrary(key) {
+    const library = JSON.parse(localStorage.getItem('referenceLibrary')) || [];
+    library.sort((a, b) => (a[key] || '').localeCompare(b[key] || ''));
     localStorage.setItem('referenceLibrary', JSON.stringify(library));
     loadReferenceLibrary();
 }
@@ -786,6 +784,15 @@ function formatTime(seconds) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+function checkStorageCapacity() {
+    const used = JSON.stringify(localStorage).length;
+    const limit = 5 * 1024 * 1024; // 5MB
+    if (used > 0.8 * limit) {
+        alert('Storage is nearly full! Please export your project to avoid data loss.');
+    }
+    return used < limit;
+}
+
 function autoSave() {
     const snippets = [];
     for (let i = 1; i <= snippetCount; i++) {
@@ -795,11 +802,22 @@ function autoSave() {
             source: document.getElementById(`source${i}`)?.value || ''
         });
     }
-    localStorage.setItem('autoSave', JSON.stringify({ snippets, snippetCount }));
+    const data = { snippets, snippetCount };
+    const compressed = LZString.compressToUTF16(JSON.stringify(data));
+    if (checkStorageCapacity()) {
+        localStorage.setItem('autoSave', compressed);
+    } else {
+        saveToIndexedDB(data);
+    }
 }
 
 function loadAutoSave() {
-    const saved = JSON.parse(localStorage.getItem('autoSave'));
+    let saved = localStorage.getItem('autoSave');
+    if (saved) {
+        saved = JSON.parse(LZString.decompressFromUTF16(saved));
+    } else {
+        saved = loadFromIndexedDB();
+    }
     if (saved) {
         snippetCount = saved.snippetCount;
         const container = document.getElementById('snippets-container');
@@ -809,6 +827,7 @@ function loadAutoSave() {
             const newSnippet = document.createElement('div');
             newSnippet.className = 'snippet';
             newSnippet.draggable = true;
+            newSnippet.setAttribute('tabindex', '0');
             newSnippet.innerHTML = `
                 <h3 class="snippet-header">Text Snippet ${index}</h3>
                 <textarea id="snippet${index}" class="snippet-content" aria-label="Text Snippet ${index}">${item.snippet}</textarea>
@@ -839,7 +858,35 @@ function loadAutoSave() {
     }
 }
 
-// script.js
+let db;
+function initIndexedDB() {
+    const request = indexedDB.open('TextCombinerDB', 1);
+    request.onupgradeneeded = event => {
+        db = event.target.result;
+        db.createObjectStore('projects', { keyPath: 'id' });
+    };
+    request.onsuccess = event => {
+        db = event.target.result;
+    };
+    request.onerror = () => console.error('IndexedDB failed to initialize');
+}
+
+function saveToIndexedDB(data) {
+    const transaction = db.transaction(['projects'], 'readwrite');
+    const store = transaction.objectStore('projects');
+    store.put({ id: 'autoSave', data });
+}
+
+function loadFromIndexedDB() {
+    return new Promise(resolve => {
+        const transaction = db.transaction(['projects'], 'readonly');
+        const store = transaction.objectStore('projects');
+        const request = store.get('autoSave');
+        request.onsuccess = () => resolve(request.result?.data || null);
+        request.onerror = () => resolve(null);
+    });
+}
+
 function addDragEvents(snippet) {
     snippet.setAttribute('tabindex', '0');
     snippet.addEventListener('dragstart', e => {
@@ -886,7 +933,35 @@ function reorderSnippets(draggedIndex, targetIndex) {
     }
 }
 
-// Focus trap for modals
+function renumberSnippets() {
+    const snippets = document.querySelectorAll('.snippet');
+    snippets.forEach((snippet, i) => {
+        const index = i + 1;
+        snippet.querySelector('h3').innerText = `Text Snippet ${index}`;
+        const textarea = snippet.querySelector('textarea');
+        textarea.id = `snippet${index}`;
+        textarea.setAttribute('aria-label', `Text Snippet ${index}`);
+        const wordCount = snippet.querySelector('span');
+        wordCount.id = `word-count${index}`;
+        const select = snippet.querySelector('select');
+        select.id = `source${index}`;
+        select.setAttribute('aria-label', `Source type for Snippet ${index}`);
+        const input = snippet.querySelector('input');
+        input.id = `ref${index}`;
+        input.setAttribute('aria-label', `Reference for Snippet ${index}`);
+        const tooltip = snippet.querySelector('.tooltiptext');
+        tooltip.id = `ref-tooltip${index}`;
+        const formatButton = snippet.querySelector('button');
+        formatButton.setAttribute('onclick', `formatCitation(${index})`);
+        formatButton.setAttribute('aria-label', `Format citation for Snippet ${index}`);
+        const error = snippet.querySelector('.error');
+        error.id = `error${index}`;
+        const correct = snippet.querySelector('.correct');
+        correct.id = `correct${index}`;
+    });
+    updateAutoAdd();
+}
+
 function trapFocus(modal) {
     const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
     const first = focusable[0];
@@ -904,143 +979,66 @@ function trapFocus(modal) {
     });
 }
 
-// Apply to all modals
-document.querySelectorAll('#output-modal, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form').forEach(modal => {
-    trapFocus(modal);
-});
-
-function renumberSnippets() {
-    const snippets = document.querySelectorAll('.snippet');
-    snippets.forEach((snippet, i) => {
-        const index = i + 1;
-        snippet.querySelector('h3').innerText = `Text Snippet ${index}`;
-        snippet.querySelector('textarea').id = `snippet${index}`;
-        snippet.querySelector('span').id = `word-count${index}`;
-        snippet.querySelector('select').id = `source${index}`;
-        snippet.querySelector('input[type="text"]').id = `ref${index}`;
-        snippet.querySelector('.tooltiptext').id = `ref-tooltip${index}`;
-        snippet.querySelector('.error').id = `error${index}`;
-        snippet.querySelector('.correct').id = `correct${index}`;
-        snippet.querySelector('button').setAttribute('onclick', `formatCitation(${index})`);
+function initialize() {
+    for (let i = 1; i <= snippetCount; i++) {
+        addSnippet();
+    }
+    document.getElementById('word-goal').addEventListener('input', () => {
+        wordGoal = parseInt(document.getElementById('word-goal').value) || 0;
+        localStorage.setItem('wordGoal', wordGoal);
+        updateGoalProgress();
     });
-    snippetCount = snippets.length;
-    updateAutoAdd();
-}
-
-function clearAll() {
-    const container = document.getElementById('snippets-container');
-    container.innerHTML = `
-        <div class="snippet" draggable="true">
-            <h3 class="snippet-header">Text Snippet 1</h3>
-            <textarea id="snippet1" class="snippet-content" aria-label="Text Snippet 1"></textarea>
-            <div class="snippet-meta">
-                <span id="word-count1">Words: 0</span>
-                <div><label>Category:</label></div>
-                <select id="source1" aria-label="Source type for Snippet 1">
-                    <option value="book">Book</option>
-                    <option value="journal">Journal</option>
-                    <option value="website">Website</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            <div class="tooltip">
-                <input type="text" id="ref1" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 1">
-                <span class="tooltiptext" id="ref-tooltip1"></span>
-                <button onclick="formatCitation(1)" aria-label="Format citation for Snippet 1">Format</button>
-            </div>
-            <span id="error1" class="error"></span>
-            <span id="correct1" class="correct">Correct</span>
-        </div>
-        <div class="snippet" draggable="true">
-            <h3 class="snippet-header">Text Snippet 2</h3>
-            <textarea id="snippet2" class="snippet-content" aria-label="Text Snippet 2"></textarea>
-            <div class="snippet-meta">
-                <span id="word-count2">Words: 0</span>
-                <div><label>Category:</label></div>
-                <select id="source2" aria-label="Source type for Snippet 2">
-                    <option value="book">Book</option>
-                    <option value="journal">Journal</option>
-                    <option value="website">Website</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            <div class="tooltip">
-                <input type="text" id="ref2" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 2">
-                <span class="tooltiptext" id="ref-tooltip2"></span>
-                <button onclick="formatCitation(2)" aria-label="Format citation for Snippet 2">Format</button>
-            </div>
-            <span id="error2" class="error"></span>
-            <span id="correct2" class="correct">Correct</span>
-        </div>
-        <div class="snippet" draggable="true">
-            <h3 class="snippet-header">Text Snippet 3</h3>
-            <textarea id="snippet3" class="snippet-content" aria-label="Text Snippet 3"></textarea>
-            <div class="snippet-meta">
-                <span id="word-count3">Words: 0</span>
-                <div><label>Category:</label></div>
-                <select id="source3" aria-label="Source type for Snippet 3">
-                    <option value="book">Book</option>
-                    <option value="journal">Journal</option>
-                    <option value="website">Website</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            <div class="tooltip">
-                <input type="text" id="ref3" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 3">
-                <span class="tooltiptext" id="ref-tooltip3"></span>
-                <button onclick="formatCitation(3)" aria-label="Format citation for Snippet 3">Format</button>
-            </div>
-            <span id="error3" class="error"></span>
-            <span id="correct3" class="correct">Correct</span>
-        </div>
-    `;
-    snippetCount = 3;
-    updateAutoAdd();
-    autoSave();
+    document.getElementById('citationStyle').addEventListener('change', () => {
+        if (document.getElementById('citationStyle').value === 'custom') {
+            document.getElementById('custom-style-modal').style.display = 'block';
+        }
+        updatePlaceholders();
+    });
+    document.querySelectorAll('textarea, input[type="text"]').forEach(el => {
+        el.addEventListener('input', () => {
+            updatePreview();
+            autoSave();
+            if (el.id.startsWith('ref')) {
+                updateValidation(parseInt(el.id.replace('ref', '')));
+            }
+        });
+    });
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.save-options') && !e.target.closest('button[aria-label="Save online"]') && !e.target.closest('button[aria-label="Save locally"]')) {
+            document.getElementById('save-online-options').style.display = 'none';
+            document.getElementById('save-locally-options').style.display = 'none';
+        }
+    });
+    document.querySelectorAll('.snippet-content').forEach(textarea => {
+        textarea.addEventListener('input', () => {
+            updateWordCounts();
+            updateGoalProgress();
+            updatePreview();
+        });
+    });
+    document.getElementById('library-search').addEventListener('input', loadReferenceLibrary);
+    document.getElementById('select-all').addEventListener('change', e => {
+        document.querySelectorAll('.library-select').forEach(cb => cb.checked = e.target.checked);
+    });
+    document.querySelectorAll('#output-modal, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form').forEach(modal => {
+        trapFocus(modal);
+    });
+    setInterval(autoSave, 5000);
+    const tips = ['Write first, edit later.', 'Clarity is key.', 'Take breaks to stay focused.'];
+    document.getElementById('motivational-tip').innerText = tips[Math.floor(Math.random() * tips.length)];
+    if (preferences.citationStyle) document.getElementById('citationStyle').value = preferences.citationStyle;
+    document.getElementById('word-goal').value = wordGoal || '';
+    initIndexedDB();
+    loadAutoSave();
+    updatePlaceholders();
 }
 
 function toggleDarkMode() {
     document.documentElement.classList.toggle('dark-mode');
     document.querySelectorAll('.snippet, #preview, #output-content, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form').forEach(el => {
-        el.style.backgroundColor = document.documentElement.classList.contains('dark-mode') ? '#444' : '#fff';
-        el.style.color = document.documentElement.classList.contains('dark-mode') ? '#ddd' : '#333';
+        el.style.backgroundColor = document.documentElement.classList.contains('dark-mode') ? '#333' : '#fff';
+        el.style.color = document.documentElement.classList.contains('dark-mode') ? '#eee' : '#333';
     });
 }
 
-document.getElementById('word-goal').addEventListener('input', () => {
-    wordGoal = parseInt(document.getElementById('word-goal').value) || 0;
-    localStorage.setItem('wordGoal', wordGoal);
-    updateGoalProgress();
-});
-
-document.getElementById('citationStyle').addEventListener('change', () => {
-    if (document.getElementById('citationStyle').value === 'custom') {
-        document.getElementById('custom-style-modal').style.display = 'block';
-    }
-    updatePlaceholders();
-});
-
-document.querySelectorAll('textarea, input').forEach(el => {
-    el.addEventListener('input', () => {
-        updatePreview();
-        autoSave();
-        if (el.id.startsWith('ref')) {
-            updateValidation(parseInt(el.id.replace('ref', '')));
-        }
-    });
-});
-
-document.addEventListener('click', e => {
-    if (!e.target.closest('.save-options') && !e.target.closest('button[aria-label="Save online"]') && !e.target.closest('button[aria-label="Save locally"]')) {
-        document.getElementById('save-online-options').style.display = 'none';
-        document.getElementById('save-locally-options').style.display = 'none';
-    }
-});
-
-setInterval(autoSave, 5000);
-const tips = ['Write first, edit later.', 'Clarity is key.', 'Take breaks to stay focused.'];
-document.getElementById('motivational-tip').innerText = tips[Math.floor(Math.random() * tips.length)];
-if (preferences.citationStyle) document.getElementById('citationStyle').value = preferences.citationStyle;
-document.getElementById('word-goal').value = wordGoal || '';
-loadAutoSave();
-updatePlaceholders();
+window.onload = initialize;
