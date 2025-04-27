@@ -12,7 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
 </head>
 <body>
-    <header>
+    <nav class="top-nav">
         <h1>Text Combiner</h1>
         <div class="button-container">
             <button onclick="toggleDarkMode()" aria-label="Toggle dark mode">Toggle Dark Mode</button>
@@ -38,45 +38,53 @@
                 <button onclick="saveZip()">ZIP</button>
             </div>
         </div>
-    </header>
-    <main>
-        <div class="config">
-            <label for="citationStyle">Citation Style:</label>
-            <select id="citationStyle" aria-label="Citation style">
-                <option value="apa">APA</option>
-                <option value="mla">MLA</option>
-                <option value="chicago">Chicago</option>
-                <option value="harvard">Harvard</option>
-                <option value="ieee">IEEE</option>
-                <option value="ama">AMA</option>
-                <option value="vancouver">Vancouver</option>
-                <option value="turabian">Turabian</option>
-                <option value="oscola">OSCOLA</option>
-                <option value="bluebook">Bluebook</option>
-                <option value="custom">Custom</option>
-            </select>
-            <div class="word-goal-container">
-                <label for="word-goal">Word Count Goal:</label>
-                <input type="number" id="word-goal" min="0" aria-label="Word count goal">
-                <div id="goal-progress">
-                    <span>Current: </span><span id="current-words">0</span> / <span id="goal-value">0</span>
-                    <span id="goal-reached" style="display: none;">✔</span>
+    </nav>
+    <div class="container">
+        <aside class="sidebar">
+            <div id="preview">
+                <h3>Live Preview</h3>
+                <div id="preview-content"></div>
+                <div id="progress">0%</div>
+                <div id="export-preview">Export Preview: ...</div>
+            </div>
+        </aside>
+        <main class="main-content">
+            <div class="config">
+                <div>
+                    <label for="citationStyle">Citation Style:</label>
+                    <select id="citationStyle" aria-label="Citation style">
+                        <option value="apa">APA</option>
+                        <option value="mla">MLA</option>
+                        <option value="chicago">Chicago</option>
+                        <option value="harvard">Harvard</option>
+                        <option value="ieee">IEEE</option>
+                        <option value="ama">AMA</option>
+                        <option value="vancouver">Vancouver</option>
+                        <option value="turabian">Turabian</option>
+                        <option value="oscola">OSCOLA</option>
+                        <option value="bluebook">Bluebook</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="word-goal-container">
+                    <label for="word-goal">Word Count Goal:</label>
+                    <input type="number" id="word-goal" min="0" aria-label="Word count goal">
+                    <div id="goal-progress">
+                        <span>Current: </span><span id="current-words">0</span> / <span id="goal-value">0</span>
+                        <span id="goal-reached" style="display: none;">✔</span>
+                    </div>
+                </div>
+                <div class="timer-container">
+                    <span id="timer-display">25:00</span>
+                    <button onclick="startTimer()" aria-label="Start timer">Start</button>
+                    <button onclick="stopTimer()" aria-label="Stop timer">Stop</button>
+                    <span id="motivational-tip"></span>
                 </div>
             </div>
-            <div class="timer-container">
-                <span id="timer-display">25:00</span>
-                <button onclick="startTimer()" aria-label="Start timer">Start</button>
-                <button onclick="stopTimer()" aria-label="Stop timer">Stop</button>
-                <span id="motivational-tip"></span>
-            </div>
-        </div>
-        <div id="snippets-container"></div>
-        <div id="preview">
-            <h3>Live Preview</h3>
-            <div id="preview-content"></div>
-        </div>
-        <button onclick="combineText()" aria-label="Combine text">Combine</button>
-    </main>
+            <div id="snippets-container"></div>
+            <button onclick="combineText()" aria-label="Combine text">Combine</button>
+        </main>
+    </div>
     <div id="output-modal">
         <div id="output-content">
             <h3>Combined Text</h3>
