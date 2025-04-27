@@ -12,10 +12,9 @@
         <h1>Text Combiner</h1>
         <div class="button-container">
             <button onclick="addSnippet()" aria-label="Add snippet">Add Snippet</button>
-            <button onclick="savePreferences()" aria-label="Save preferences">Save Preferences</button>
             <button onclick="toggleDarkMode()" aria-label="Toggle dark mode">Dark Mode</button>
             <div class="timer-container">
-                <label for="timer-minutes">Minutes to Break:</label>
+                <label for="timer-minutes">Minutes until Break:</label>
                 <input type="number" id="timer-minutes" min="1" value="25" aria-label="Minutes until next break" style="width: 50px;">
                 <span id="timer-display">25:00</span>
                 <button onclick="startTimer()" aria-label="Start timer">Start</button>
@@ -25,18 +24,20 @@
     </nav>
     <div class="container">
         <aside class="sidebar">
+            <div id="persistent-info">
+                <div id="motivational-tip"></div>
+                <div id="goal-progress">
+                    <label>Word Goal:</label>
+                    <input type="number" id="word-goal" min="0" aria-label="Word goal">
+                    <div>Current: <span id="current-words">0</span> / Goal: <span id="goal-value">0</span></div>
+                    <div id="goal-reached" style="display: none;">✔ Goal Reached!</div>
+                </div>
+                <div>Progress: <span id="progress">0%</span></div>
+            </div>
             <div id="preview">
                 <h3>Live Preview</h3>
                 <div id="preview-content"></div>
             </div>
-            <div id="motivational-tip"></div>
-            <div id="goal-progress">
-                <label>Word Goal:</label>
-                <input type="number" id="word-goal" min="0" aria-label="Word goal">
-                <div>Current: <span id="current-words">0</span> / Goal: <span id="goal-value">0</span></div>
-                <div id="goal-reached" style="display: none;">✔ Goal Reached!</div>
-            </div>
-            <div>Progress: <span id="progress">0%</span></div>
         </aside>
         <main class="main-content">
             <div>
@@ -58,23 +59,25 @@
     </div>
     <div id="output-modal">
         <div id="output-content">
+            <button class="close-modal" onclick="closeModal()" aria-label="Close output">X</button>
             <h3>Combined Text</h3>
             <div id="output-text"></div>
             <div id="errors-list"></div>
             <div id="word-count-output"></div>
-            <button onclick="copyText()" aria-label="Copy text">Copy</button>
-            <button onclick="saveText()" aria-label="Save as text">Text</button>
-            <button onclick="savePDF()" aria-label="Save as PDF">PDF</button>
+            <button onclick="copyText()" aria-label="Copy to clipboard">Copy to Clipboard</button>
             <button onclick="toggleSaveLocally()" aria-label="Save locally">Save Locally</button>
             <div id="save-locally-options" style="display: none;">
+                <button onclick="savePDF()" aria-label="Save as PDF">PDF</button>
+                <button onclick="saveText()" aria-label="Save as Text">Text</button>
                 <button onclick="saveDocx()" aria-label="Save as DOCX">DOCX</button>
-                <button onclick="saveMarkdown()" aria-label="Save as Markdown">Markdown</button>
-                <button onclick="saveRIS()" aria-label="Save as RIS">RIS</button>
-                <button onclick="saveLatex()" aria-label="Save as LaTeX">LaTeX</button>
-                <button onclick="saveFlashcards()" aria-label="Save as Flashcards">Flashcards</button>
-                <button onclick="saveZip()" aria-label="Save as ZIP">ZIP</button>
             </div>
-            <button onclick="closeModal()" aria-label="Close output">Close</button>
+            <button onclick="toggleSaveOnline()" aria-label="Save online">Save Online</button>
+            <div id="save-online-options" style="display: none;">
+                <button onclick="saveToGoogleDrive()" aria-label="Save to Google Drive">Google Drive</button>
+                <button onclick="saveToDropbox()" aria-label="Save to Dropbox">Dropbox</button>
+                <button onclick="saveToSharepoint()" aria-label="Save to Sharepoint">Sharepoint</button>
+                <button onclick="saveToClassrooms()" aria-label="Save to Classrooms">Classrooms</button>
+            </div>
             <span id="copy-message" style="display: none;">Copied!</span>
         </div>
     </div>
@@ -85,13 +88,15 @@
         <button onclick="closeCustomStyleModal()" aria-label="Close custom style modal">Cancel</button>
     </div>
     <div id="citation-format-modal">
-        <h3>Format Citation</h3>
-        <input type="text" id="format-author" placeholder="Author" aria-label="Citation author">
-        <input type="text" id="format-year" placeholder="Year" aria-label="Citation year">
-        <input type="text" id="format-title" placeholder="Title" aria-label="Citation title">
-        <input type="text" id="format-journal" placeholder="Journal" aria-label="Citation journal">
-        <button onclick="applyFormattedCitation()" aria-label="Apply citation">Apply</button>
-        <button onclick="closeCitationFormatModal()" aria-label="Close citation format modal">Cancel</button>
+        <div id="citation-format-content">
+            <h3>Format Citation</h3>
+            <input type="text" id="format-author" placeholder="Author" aria-label="Citation author">
+            <input type="text" id="format-year" placeholder="Year" aria-label="Citation year">
+            <input type="text" id="format-title" placeholder="Title" aria-label="Citation title">
+            <input type="text" id="format-journal" placeholder="Journal" aria-label="Citation journal">
+            <button onclick="applyFormattedCitation()" aria-label="Apply citation">Apply</button>
+            <button onclick="closeCitationFormatModal()" aria-label="Close citation format modal">Cancel</button>
+        </div>
     </div>
     <div id="reference-library-modal">
         <h3>Reference Library</h3>
