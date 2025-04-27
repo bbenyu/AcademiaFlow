@@ -85,9 +85,7 @@ function addSnippet(autoAdded = false) {
             <span id="correct${snippetCount}" class="correct">Correct</span>
         `;
         container.appendChild(newSnippet);
-        if (!autoAdded) {
-            newSnippet.scrollIntoView({ behavior: 'smooth' });
-        }
+        newSnippet.scrollIntoView({ behavior: 'smooth' }); // Always scroll into view
         addDragEvents(newSnippet);
         const textarea = newSnippet.querySelector('.snippet-content');
         textarea.addEventListener('input', debounce(() => {
@@ -108,6 +106,8 @@ function addSnippet(autoAdded = false) {
     }
 }
 
+
+
 function getPlaceholder() {
     try {
         const style = document.getElementById('citationStyle')?.value || 'apa';
@@ -124,13 +124,22 @@ function getPlaceholder() {
     }
 }
 
+
+
 function validateReference(ref, style, index) {
     try {
         const patterns = {
-            apa: /^[\w\s]+,\s*[\w\s]+\.\s*\(\d{4}\)\.\s*.+$/,
-            mla: /^[\w\s]+,\s*[\w\s]+\.\s*".+"\.\s*.+,\s*\d{4}\.$/,
-            chicago: /^[\w\s]+,\s*[\w\s]+\.\s*\d{4}\.\s*".+"\.\s*.+$/,
-            custom: new RegExp(customStyle.replace('{author}', '[\\w\\s]+').replace('{year}', '\\d{4}').replace('{title}', '.+'))
+            apa: /^[\w\s]+,\s*[\w\s]+\.\s*\(\d{4}\)\.\s*.+\.\s*.+$/, // e.g., Smith, J. (2020). Title. Journal.
+            mla: /^[\w\s]+,\s*[\w\s]+\.\s*".+"\.\s*.+,\s*\d{4}\.$/, // e.g., Smith, John. "Title." Journal, 2020.
+            chicago: /^[\w\s]+,\s*[\w\s]+\.\s*\d{4}\.\s*".+"\.\s*.+$/, // e.g., Smith, John. 2020. "Title." Journal.
+            custom: new RegExp(
+                customStyle
+                    .replace('{author}', '[\\w\\s,]+')
+                    .replace('{year}', '\\d{4}')
+                    .replace('{title}', '[^\\}]+')
+                    .replace('{journal}', '.*')
+                    .replace(/[\{\}]/g, '')
+            )
         };
         const errorSpan = document.getElementById(`error${index + 1}`);
         const correctSpan = document.getElementById(`correct${index + 1}`);
@@ -158,6 +167,8 @@ function validateReference(ref, style, index) {
         return false;
     }
 }
+
+
 
 function updateValidation(index) {
     try {
@@ -344,6 +355,13 @@ function combineText() {
         if (errorsList) {
             errorsList.innerText = invalidRefs.length ? `Incorrect references: ${invalidRefs.join(', ')}` : '';
         }
+        const wordCountOutput = document.getElementById('word-count-output');
+        if (wordCountOutput) {
+            const totalOutputWords = countWords(outputText);
+            const snippetsOnly = outputText.split('\n\nBibliography:\n')[0]?.replace(/\([\w\s,]+\)/g, '') || '';
+            const snippetsWords = countWords(snippetsOnly);
+            wordCountOutput.innerText = `Total Words: ${totalOutputWords} (Excluding Citations: ${snippetsWords})`;
+        }
         const outputModal = document.getElementById('output-modal');
         if (outputModal) {
             outputModal.style.display = 'flex';
@@ -354,6 +372,8 @@ function combineText() {
         console.error('Error combining text:', e);
     }
 }
+
+
 
 function updateWordCounts() {
     try {
@@ -413,30 +433,40 @@ function updateGoalProgress() {
     }
 }
 
+// In script.js, replace the showGoalReached function
 function showGoalReached() {
     try {
         const audio = new Audio('goalReached.wav');
         audio.play().catch(e => {
             console.error('Goal audio failed:', e);
-            alert('Goal reached! (Audio unavailable)');
+            alert('Goal reached!');
         });
     } catch (e) {
         console.error('Error showing goal reached:', e);
+        alert('Goal reached!');
     }
 }
 
+
 function updateProgress() {
     try {
-        const completed = Array.from(document.querySelectorAll('.snippet-content')).filter(s => s.value.trim() !== '').length;
-        const total = snippetCount;
+        let totalWords = 0;
+        for (let i = 1; i <= snippetCount; i++) {
+            const snippet = document.getElementById(`snippet${i}`)?.value || '';
+            totalWords += countWords(snippet);
+        }
         const progressElement = document.getElementById('progress');
-        if (progressElement) {
-            progressElement.innerText = total > 0 ? `${Math.round((completed / total) * 100)}%` : '0%';
+        if (progressElement && wordGoal > 0) {
+            const percentage = Math.min(Math.round((totalWords / wordGoal) * 100), 100);
+            progressElement.innerText = `${percentage}%`;
+        } else if (progressElement) {
+            progressElement.innerText = '0%';
         }
     } catch (e) {
         console.error('Error updating progress:', e);
     }
 }
+
 
 function closeModal() {
     try {
@@ -480,23 +510,34 @@ function savePDF() {
     }
 }
 
+
+
 function saveDocx() {
     try {
         const text = document.getElementById('output-text')?.innerText || '';
-        const doc = new docxtemplater(new JSZip(), { paragraphLoop: true });
-        const content = `
+        const zip = new JSZip();
+        const doc = new docxtemplater();
+        const template = `
             <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
                 <w:body>
-                    <w:p><w:r><w:t>${text.replace(/\n/g, '</w:t></w:r></w:p><w:p><w:r><w:t>')}</w:t></w:r></w:p>
+                    <w:p>
+                        <w:r>
+                            <w:t>{text}</w:t>
+                        </w:r>
+                    </w:p>
                 </w:body>
             </w:document>`;
-        doc.loadZip(new JSZip()).setData(content).render();
+        zip.file('word/document.xml', template);
+        doc.loadZip(zip).setData({ text: text.replace(/\n/g, '</w:t></w:r></w:p><w:p><w:r><w:t>') }).render();
         const blob = doc.getZip().generate({ type: 'blob' });
         saveAs(blob, 'text_combiner.docx');
     } catch (e) {
         console.error('Error saving DOCX:', e);
+        alert('Failed to save DOCX. Ensure all dependencies are loaded.');
     }
 }
+
+
 
 function saveText() {
     try {
@@ -511,11 +552,14 @@ function saveText() {
     }
 }
 
+
+
 function toggleSaveLocally() {
     try {
         const options = document.getElementById('save-locally-options');
         if (options) {
-            options.style.display = options.style.display === 'block' ? 'none' : 'block';
+            options.style.display = options.style.display === 'flex' ? 'none' : 'flex';
+            document.getElementById('save-online-options').style.display = 'none'; // Hide other menu
         }
     } catch (e) {
         console.error('Error toggling save locally:', e);
@@ -526,12 +570,15 @@ function toggleSaveOnline() {
     try {
         const options = document.getElementById('save-online-options');
         if (options) {
-            options.style.display = options.style.display === 'block' ? 'none' : 'block';
+            options.style.display = options.style.display === 'flex' ? 'none' : 'flex';
+            document.getElementById('save-locally-options').style.display = 'none'; // Hide other menu
         }
     } catch (e) {
         console.error('Error toggling save online:', e);
     }
 }
+
+
 
 function saveToGoogleDrive() {
     alert('Google Drive integration not implemented. Please implement OAuth and Google Drive API.');
@@ -888,10 +935,18 @@ function addDragEvents(snippet) {
         });
         snippet.addEventListener('dragend', () => {
             snippet.classList.remove('dragging');
+            document.querySelectorAll('.snippet').forEach(s => s.classList.remove('drag-over'));
         });
-        snippet.addEventListener('dragover', e => e.preventDefault());
+        snippet.addEventListener('dragover', e => {
+            e.preventDefault();
+            snippet.classList.add('drag-over');
+        });
+        snippet.addEventListener('dragleave', () => {
+            snippet.classList.remove('drag-over');
+        });
         snippet.addEventListener('drop', e => {
             e.preventDefault();
+            snippet.classList.remove('drag-over');
             const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
             const targetIndex = parseInt(snippet.querySelector('h3').innerText.split(' ')[2]);
             reorderSnippets(draggedIndex, targetIndex);
@@ -901,6 +956,7 @@ function addDragEvents(snippet) {
     }
 }
 
+
 function reorderSnippets(draggedIndex, targetIndex) {
     try {
         if (draggedIndex !== targetIndex) {
@@ -908,6 +964,9 @@ function reorderSnippets(draggedIndex, targetIndex) {
             const snippets = Array.from(container.children);
             const dragged = snippets[draggedIndex - 1];
             const target = snippets[targetIndex - 1];
+            // Animate movement
+            dragged.style.transition = 'transform 0.3s ease';
+            target.style.transition = 'transform 0.3s ease';
             if (draggedIndex < targetIndex) {
                 container.insertBefore(dragged, target.nextSibling);
             } else {
@@ -916,11 +975,18 @@ function reorderSnippets(draggedIndex, targetIndex) {
             renumberSnippets();
             updatePreview();
             autoSave();
+            // Reset transitions after animation
+            setTimeout(() => {
+                dragged.style.transition = '';
+                target.style.transition = '';
+            }, 300);
         }
     } catch (e) {
         console.error('Error reordering snippets:', e);
     }
 }
+
+
 
 function renumberSnippets() {
     try {
