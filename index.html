@@ -5,38 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text Combiner</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.26.0/docxtemplater.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
 </head>
 <body>
     <div id="loading-spinner" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5em;">Loading...</div>
     <nav class="top-nav">
         <h1>Text Combiner</h1>
         <div class="button-container">
-            <button onclick="toggleDarkMode()" aria-label="Toggle dark mode">Toggle Dark Mode</button>
-            <button onclick="savePreferences()" aria-label="Save preferences">Save Preferences</button>
-            <button onclick="showReferenceLibrary()" aria-label="Open reference library">Reference Library</button>
-            <button onclick="toggleSaveOnline()" aria-label="Save online">Save Online</button>
-            <div id="save-online-options" class="save-options">
-                <button onclick="saveToGoogleDrive()">Google Drive</button>
-                <button onclick="saveToDropbox()">Dropbox</button>
-                <button onclick="saveToOneDrive()">OneDrive</button>
-                <button onclick="shareSecurely()">Share Securely</button>
-            </div>
-            <button onclick="toggleSaveLocally()" aria-label="Save locally">Save Locally</button>
-            <div id="save-locally-options" class="save-options">
-                <button onclick="savePDF()">PDF</button>
-                <button onclick="saveDocx()">DOCX</button>
-                <button onclick="saveText()">Text</button>
-                <button onclick="saveMarkdown()">Markdown</button>
-                <button onclick="saveRIS()">RIS</button>
-                <button onclick="saveLatex()">LaTeX</button>
-                <button onclick="saveFlashcards()">Flashcards</button>
-                <button onclick="saveZip()">ZIP</button>
-            </div>
+            <button onclick="addSnippet()" aria-label="Add snippet">Add Snippet</button>
             <div class="timer-container">
                 <label for="work-minutes">Work:</label>
                 <input type="number" id="work-minutes" min="1" value="25" aria-label="Work duration in minutes" style="width: 50px;">
@@ -53,38 +28,9 @@
             <div id="preview">
                 <h3>Live Preview</h3>
                 <div id="preview-content"></div>
-                <div id="progress">0%</div>
-                <div id="export-preview">Export Preview: ...</div>
             </div>
         </aside>
         <main class="main-content">
-            <div class="config">
-                <div>
-                    <label for="citationStyle">Citation Style:</label>
-                    <select id="citationStyle" aria-label="Citation style">
-                        <option value="apa">APA</option>
-                        <option value="mla">MLA</option>
-                        <option value="chicago">Chicago</option>
-                        <option value="harvard">Harvard</option>
-                        <option value="ieee">IEEE</option>
-                        <option value="ama">AMA</option>
-                        <option value="vancouver">Vancouver</option>
-                        <option value="turabian">Turabian</option>
-                        <option value="oscola">OSCOLA</option>
-                        <option value="bluebook">Bluebook</option>
-                        <option value="custom">Custom</option>
-                    </select>
-                </div>
-                <div class="word-goal-container">
-                    <label for="word-goal">Word Count Goal:</label>
-                    <input type="number" id="word-goal" min="0" aria-label="Word count goal">
-                    <div id="goal-progress">
-                        <span>Current: </span><span id="current-words">0</span> / <span id="goal-value">0</span>
-                        <span id="goal-reached" style="display: none;">✔</span>
-                    </div>
-                </div>
-                <span id="motivational-tip"></span>
-            </div>
             <div id="snippets-container"></div>
             <button onclick="combineText()" aria-label="Combine text">Combine</button>
         </main>
@@ -96,53 +42,14 @@
         <div id="output-content">
             <h3>Combined Text</h3>
             <div id="output-text"></div>
-            <div id="word-count-output"></div>
-            <div id="errors-list"></div>
-            <button onclick="copyText()" aria-label="Copy text">Copy</button>
-            <span id="copy-message" style="display: none;">Copied!</span>
             <button onclick="closeModal()" aria-label="Close output">Close</button>
         </div>
-    </div>
-    <div id="custom-style-modal">
-        <h3>Custom Citation Style</h3>
-        <input type="text" id="custom-style-input" placeholder="e.g., {author}, {year}, {title}" aria-label="Custom citation style">
-        <button onclick="saveCustomStyle()">Save</button>
-        <button onclick="closeCustomStyleModal()">Cancel</button>
-    </div>
-    <div id="citation-format-modal">
-        <h3>Format Citation</h3>
-        <input type="text" id="format-author" placeholder="Author (e.g., Smith, J.)" aria-label="Citation author">
-        <input type="text" id="format-year" placeholder="Year (e.g., 2020)" aria-label="Citation year">
-        <input type="text" id="format-title" placeholder="Title" aria-label="Citation title">
-        <input type="text" id="format-journal" placeholder="Journal/Source" aria-label="Citation journal">
-        <button onclick="applyFormattedCitation()">Apply</button>
-        <button onclick="closeCitationFormatModal()">Cancel</button>
-    </div>
-    <div id="reference-library-modal">
-        <h3>Reference Library</h3>
-        <input type="text" id="library-search" placeholder="Search by reference or tag" aria-label="Search references">
-        <input type="text" id="library-ref" placeholder="Add reference (e.g., Smith, 2020, Title)" aria-label="Add reference">
-        <input type="text" id="library-tag" placeholder="Tag (e.g., Project A)" aria-label="Reference tag">
-        <button onclick="addReferenceToLibrary()">Add</button>
-        <button onclick="deleteSelectedReferences()">Delete Selected</button>
-        <table id="library-table">
-            <thead>
-                <tr>
-                    <th><input type="checkbox" id="select-all" aria-label="Select all references"></th>
-                    <th onclick="sortLibrary('ref')">Reference</th>
-                    <th onclick="sortLibrary('tag')">Tag</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="library-list"></tbody>
-        </table>
-        <button onclick="closeReferenceLibrary()">Close</button>
     </div>
     <div id="request-form">
         <h3>Feature Request</h3>
         <textarea id="feature-request" placeholder="Describe your feature request" aria-label="Feature request"></textarea>
-        <button onclick="submitRequest()">Submit</button>
-        <button onclick="closeRequestForm()">Cancel</button>
+        <button onclick="submitRequest()" aria-label="Submit feature request">Submit</button>
+        <button onclick="closeRequestForm()" aria-label="Cancel feature request">Cancel</button>
     </div>
     <script src="script.js"></script>
 </body>
