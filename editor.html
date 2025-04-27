@@ -5,13 +5,22 @@
     <title>Professional Editor</title>
     <link rel="stylesheet" href="styles.css">
     <script src="header.js"></script>
-    <!-- TinyMCE CDN -->
-    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <!-- Quill CSS -->
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <!-- Quill JS -->
+    <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
     <style>
         .editor-container { margin-top: 24px; }
         #editor-status-bar { margin-top: 8px; font-size: 0.95em; display: flex; justify-content: space-between; align-items: center; }
-        .tox-tinymce { border-radius: 6px; }
-        .dark-mode .tox-tinymce { background: #222; color: #eee; }
+        #editor-container { border-radius: 6px; margin-bottom: 20px; }
+        .ql-toolbar.ql-snow { border-radius: 6px 6px 0 0; }
+        .ql-container.ql-snow { border-radius: 0 0 6px 6px; height: 500px; }
+        .dark-mode .ql-toolbar.ql-snow { background: #333; border-color: #444; }
+        .dark-mode .ql-container.ql-snow { background: #222; color: #eee; border-color: #444; }
+        .dark-mode .ql-editor p { color: #eee; }
+        .dark-mode .ql-picker-label, .dark-mode .ql-picker-options { color: #eee; }
+        .dark-mode .ql-stroke { stroke: #eee; }
+        .dark-mode .ql-fill { fill: #eee; }
         .center-viewport { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg-color, #f4f4f4);}
         #spinner-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.7); z-index: 9999; display: none; align-items: center; justify-content: center;}
         .spinner { border: 6px solid #f3f3f3; border-top: 6px solid #007bff; border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite;}
@@ -241,7 +250,7 @@
             </div>
             
             <div class="editor-container">
-                <textarea id="editor"></textarea>
+                <div id="editor-container"></div>
                 <div id="plagiarism-report">
                     <h3>Plagiarism Check Results</h3>
                     <div class="plagiarism-progress">
@@ -279,70 +288,80 @@
     function showSpinner() { document.getElementById('spinner-overlay').style.display = 'flex'; }
     function hideSpinner() { document.getElementById('spinner-overlay').style.display = 'none'; }
 
-    // Initialize TinyMCE with 50+ features
-    tinymce.init({
-        selector: '#editor',
-        height: 500,
-        plugins: [
-            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-            'insertdatetime', 'media', 'table', 'help', 'wordcount', 'emoticons',
-            'codesample', 'directionality', 'nonbreaking', 'save', 'template',
-            'pagebreak', 'quickbars', 'autoresize', 'print', 'hr', 'spellchecker'
-        ],
-        toolbar: [
-            'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist checklist |',
-            'link image media codesample table hr pagebreak | anchor charmap emoticons | insertdatetime | searchreplace | visualblocks code fullscreen preview print | ltr rtl | save template |'
-        ].join(' '),
-        menubar: 'file edit view insert format tools table help',
-        autosave_ask_before_unload: true,
-        autosave_interval: '30s',
-        autosave_prefix: '{path}{query}-{id}-',
-        autosave_restore_when_empty: true,
-        autosave_retention: '2m',
-        image_advtab: true,
-        image_title: true,
-        quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote quickimage quicktable',
-        nonbreaking_force_tab: true,
-        contextmenu: 'link image table spellchecker',
-        spellchecker_dialog: true,
-        spellchecker_whitelist: ['AcademiaFlow'],
-        templates: [
-            { title: 'Academic Paragraph', description: 'Standard paragraph', content: '<p>This is an academic paragraph template.</p>' },
-            { title: 'Reference List', description: 'Reference section', content: '<h3>References</h3><ul><li>Author, A. (Year). Title. Journal.</li></ul>' }
-        ],
-        save_onsavecallback: function () {
-            const user = localStorage.getItem('academictools_user') || 'default';
-            localStorage.setItem('editor_' + user, tinymce.activeEditor.getContent());
-            const statusBar = document.getElementById('editor-status-bar');
-            const statusMsg = document.createElement('span');
-            statusMsg.textContent = "Saved!";
-            statusMsg.style.color = "green";
-            statusBar.appendChild(statusMsg);
-            setTimeout(() => statusMsg.remove(), 2000);
+    // Initialize Quill editor
+    var quill = new Quill('#editor-container', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'align': [] }],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'script': 'sub'}, { 'script': 'super' }],
+                [{ 'indent': '-1'}, { 'indent': '+1' }],
+                ['blockquote', 'code-block'],
+                ['link', 'image', 'video'],
+                ['clean']
+            ]
         },
-        setup: function (editor) {
-            // Word/char count and reading time
-            function updateStatus() {
-                const text = editor.getContent({ format: 'text' });
-                const words = text.trim().split(/\s+/).filter(Boolean).length;
-                const chars = text.replace(/\s/g, '').length;
-                const readingTime = Math.max(1, Math.round(words / 200));
-                document.getElementById('word-count').textContent = `Words: ${words} | Characters: ${chars} | Reading Time: ${readingTime} min`;
-            }
-            editor.on('keyup change', updateStatus);
-            editor.on('init', function () {
-                const user = localStorage.getItem('academictools_user') || 'default';
-                const saved = localStorage.getItem('editor_' + user);
-                if (saved) editor.setContent(saved);
-                updateStatus();
-            });
+        placeholder: 'Compose your document here...'
+    });
+    
+    // Load saved content
+    function loadSavedContent() {
+        const user = localStorage.getItem('academictools_user') || 'default';
+        const saved = localStorage.getItem('editor_' + user);
+        if (saved) {
+            quill.clipboard.dangerouslyPasteHTML(saved);
         }
+    }
+    
+    // Save content function
+    function saveContent() {
+        const user = localStorage.getItem('academictools_user') || 'default';
+        localStorage.setItem('editor_' + user, quill.root.innerHTML);
+        const statusBar = document.getElementById('editor-status-bar');
+        const statusMsg = document.createElement('span');
+        statusMsg.textContent = "Saved!";
+        statusMsg.style.color = "green";
+        statusBar.appendChild(statusMsg);
+        setTimeout(() => statusMsg.remove(), 2000);
+    }
+    
+    // Word/char count and reading time
+    function updateStatus() {
+        const text = quill.getText();
+        const words = text.trim().split(/\s+/).filter(Boolean).length;
+        const chars = text.replace(/\s/g, '').length;
+        const readingTime = Math.max(1, Math.round(words / 200));
+        document.getElementById('word-count').textContent = `Words: ${words} | Characters: ${chars} | Reading Time: ${readingTime} min`;
+    }
+    
+    // Initialize editor with saved content and set up event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSavedContent();
+        updateStatus();
+        
+        // Set up auto-save and status updates
+        quill.on('text-change', function() {
+            updateStatus();
+            // Auto-save after typing stops for 2 seconds
+            clearTimeout(quill.saveTimeout);
+            quill.saveTimeout = setTimeout(saveContent, 2000);
+        });
     });
     
     // Dark Mode Toggle
     document.getElementById('toggle-dark-mode').onclick = function() {
         document.body.classList.toggle('dark-mode');
+        // Update Quill toolbar appearance for dark mode
+        const toolbar = document.querySelector('.ql-toolbar');
+        if (document.body.classList.contains('dark-mode')) {
+            toolbar.style.background = '#333';
+        } else {
+            toolbar.style.background = '';
+        }
     };
 
     // Focus Mode
@@ -352,7 +371,7 @@
 
     // Download as Markdown
     document.getElementById('download-md-btn').onclick = function() {
-        const html = tinymce.activeEditor.getContent();
+        const html = quill.root.innerHTML;
         // Simple HTML to Markdown conversion (for demo)
         let md = html.replace(/<h1>(.*?)<\/h1>/g, '# $1\n')
                      .replace(/<h2>(.*?)<\/h2>/g, '## $1\n')
@@ -374,13 +393,35 @@
     // Clear Editor
     document.getElementById('clear-editor-btn').onclick = function() {
         if (confirm("Clear the editor?")) {
-            tinymce.activeEditor.setContent('');
+            quill.setText('');
+            updateStatus();
         }
     };
 
     // Print
     document.getElementById('print-btn').onclick = function() {
-        tinymce.activeEditor.execCommand('mcePrint');
+        const content = quill.root.innerHTML;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Print Document</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 40px; }
+                    @media print {
+                        body { margin: 0.5in; }
+                    }
+                </style>
+            </head>
+            <body>
+                ${content}
+                <script>
+                    window.onload = function() { window.print(); window.close(); }
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     };
     
     // Reference Library Functions
@@ -448,7 +489,8 @@
     }
     
     function insertReferenceToEditor(reference) {
-        tinymce.activeEditor.execCommand('mceInsertContent', false, reference);
+        const range = quill.getSelection(true);
+        quill.insertText(range.index, reference);
         closeReferenceLibrary();
     }
     
@@ -465,7 +507,7 @@
     
     // Plagiarism checker functionality
     document.getElementById('check-plagiarism').onclick = function() {
-        const content = tinymce.activeEditor.getContent({ format: 'text' });
+        const content = quill.getText();
         if (content.trim().length < 50) {
             alert("Please enter more text to check for plagiarism.");
             return;
@@ -503,8 +545,7 @@
                 `;
                 
                 // Highlight random words in the editor to simulate plagiarism detection
-                const editor = tinymce.activeEditor;
-                const editorContent = editor.getContent();
+                const editorContent = quill.root.innerHTML;
                 let highlightedContent = editorContent;
                 
                 // Randomly highlight a few words (for demonstration)
@@ -519,7 +560,7 @@
                     }
                 }
                 
-                editor.setContent(highlightedContent);
+                quill.clipboard.dangerouslyPasteHTML(highlightedContent);
             }
         }, 100);
     };
@@ -527,7 +568,7 @@
     // Reference context menu functionality
     document.addEventListener('contextmenu', function(e) {
         // Only show context menu if we're in the editor
-        if (tinymce.activeEditor && tinymce.activeEditor.getElement().contains(e.target)) {
+        if (document.querySelector('.ql-editor').contains(e.target)) {
             e.preventDefault();
             
             const contextMenu = document.getElementById('reference-context-menu');
@@ -552,19 +593,22 @@
     };
     
     document.getElementById('cite-ref-here').onclick = function() {
-        const selectedText = tinymce.activeEditor.selection.getContent({format: 'text'});
-        if (selectedText) {
+        const range = quill.getSelection();
+        if (range && range.length > 0) {
+            const selectedText = quill.getText(range.index, range.length);
             // Format as citation (for demo purposes)
             const citation = `(${selectedText}, 2023)`;
-            tinymce.activeEditor.selection.setContent(citation);
+            quill.deleteText(range.index, range.length);
+            quill.insertText(range.index, citation);
         } else {
             alert("Please select text to cite first");
         }
     };
     
     document.getElementById('add-to-library').onclick = function() {
-        const selectedText = tinymce.activeEditor.selection.getContent({format: 'text'});
-        if (selectedText) {
+        const range = quill.getSelection();
+        if (range && range.length > 0) {
+            const selectedText = quill.getText(range.index, range.length);
             const refs = JSON.parse(localStorage.getItem('ref_lib') || "[]");
             refs.push({text: selectedText, tags: []});
             localStorage.setItem('ref_lib', JSON.stringify(refs));
