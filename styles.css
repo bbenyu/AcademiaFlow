@@ -99,6 +99,10 @@ input, select {
     background-color: var(--snippet-bg);
     color: var(--text-color);
 }
+#word-goal {
+    width: 100px;
+    margin-left: 10px;
+}
 label {
     font-size: 16px;
     margin: 5px 0;
@@ -112,13 +116,13 @@ label {
 .correct { color: #55ff55; }
 button {
     padding: 10px 20px;
-    margin: 10px;
+    margin: 5px;
     background-color: #007bff;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 16px;
     transition: background-color 0.3s;
 }
 button:hover { background-color: #0056b3; }
@@ -135,9 +139,19 @@ select {
 .button-group h4 {
     margin: 0 0 10px;
 }
-#output-modal {
+#output-modal, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form {
     display: none;
     position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--snippet-bg);
+    color: var(--text-color);
+    padding: 20px;
+    border-radius: 5px;
+    z-index: 1002;
+}
+#output-modal {
     top: 0;
     left: 0;
     width: 100%;
@@ -145,17 +159,13 @@ select {
     background-color: rgba(0,0,0,0.5);
     justify-content: center;
     align-items: center;
-    z-index: 1000;
 }
 #output-content {
-    background-color: var(--snippet-bg);
-    color: var(--text-color);
-    padding: 20px;
-    border-radius: 5px;
     width: 80%;
     max-width: 700px;
-    text-align: left;
-    position: relative;
+}
+#request-form {
+    width: 500px;
 }
 #output-text {
     white-space: pre-wrap;
@@ -208,29 +218,6 @@ select {
     width: 100%;
     text-align: left;
 }
-#custom-style-modal {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: var(--snippet-bg);
-    padding: 20px;
-    border-radius: 5px;
-    z-index: 1002;
-}
-#request-form {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: var(--snippet-bg);
-    padding: 20px;
-    border-radius: 5px;
-    width: 500px;
-    z-index: 1002;
-}
 #feature-request {
     width: 100%;
     height: 150px;
@@ -264,6 +251,50 @@ select {
     padding: 10px;
     background-color: var(--snippet-bg);
     border-radius: 5px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+#goal-tracker {
+    display: flex;
+    align-items: center;
+}
+#goal-progress {
+    margin: 10px;
+}
+#goal-value.goal-reached { color: #55ff55; }
+#goal-value:not(.goal-reached) { color: #000; }
+#current-words:not(.goal-reached) { color: #ffeb3b; }
+#current-words.goal-reached { color: #55ff55; }
+#timer-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+#timer-display {
+    font-size: 16px;
+    min-width: 60px;
+}
+#goal-reached {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    color: #55ff55;
+    font-size: 100px;
+    z-index: 1003;
+    animation: blop 1.5s ease-in-out;
+}
+@keyframes blop {
+    0% { transform: translate(-50%, -50%) scale(0); }
+    50% { transform: translate(-50%, -50%) scale(1.2); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+#library-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 10px 0;
 }
 @media (max-width: 600px) {
     body { flex-direction: column; }
