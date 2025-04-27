@@ -1,0 +1,27 @@
+<div class="widget">
+    <div class="widget-title">Citation Generator</div>
+    <input id="citation-author" placeholder="Author" style="width:100%;margin-bottom:4px;">
+    <input id="citation-title" placeholder="Title" style="width:100%;margin-bottom:4px;">
+    <input id="citation-year" placeholder="Year" style="width:100%;margin-bottom:4px;">
+    <select id="citation-style" style="width:100%;margin-bottom:4px;">
+        <option value="apa">APA</option>
+        <option value="mla">MLA</option>
+    </select>
+    <button onclick="generateCitation()">Generate</button>
+    <div id="citation-output" style="margin-top:8px;font-size:0.95em;"></div>
+</div>
+<script>
+function generateCitation() {
+    const author = document.getElementById('citation-author').value;
+    const title = document.getElementById('citation-title').value;
+    const year = document.getElementById('citation-year').value;
+    const style = document.getElementById('citation-style').value;
+    let citation = "";
+    if (style === "apa") {
+        citation = `${author} (${year}). <i>${title}</i>.`;
+    } else {
+        citation = `${author}. "<i>${title}</i>." (${year}).`;
+    }
+    document.getElementById('citation-output').innerHTML = citation;
+}
+</script>

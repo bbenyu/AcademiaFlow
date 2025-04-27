@@ -1,0 +1,11 @@
+<div class="widget">
+    <div class="widget-title">PDF Annotator</div>
+    <input type="file" id="pdf-upload" accept="application/pdf">
+    <div id="pdf-filename" style="margin-top:8px;"></div>
+</div>
+<script>
+document.getElementById('pdf-upload').onchange = function(e) {
+    const file = e.target.files[0];
+    document.getElementById('pdf-filename').textContent = file ? "Uploaded: " + file.name : "";
+};
+</script>

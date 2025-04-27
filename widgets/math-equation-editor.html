@@ -1,0 +1,14 @@
+<div class="widget">
+    <div class="widget-title">Math Equation Editor</div>
+    <input id="math-input" placeholder="Enter LaTeX (e.g. x^2+y^2=z^2)" style="width:100%;">
+    <button onclick="renderMath()">Render</button>
+    <div id="math-output" style="margin-top:8px;font-size:1.2em;"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+function renderMath() {
+    const latex = document.getElementById('math-input').value;
+    document.getElementById('math-output').innerHTML = `\\(${latex}\\)`;
+    MathJax.typesetPromise([document.getElementById('math-output')]);
+}
+</script>

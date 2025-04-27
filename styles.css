@@ -123,10 +123,16 @@ button:hover {
     min-height: calc(100vh - 64px);
 }
 .sidebar {
-    width: 300px;
-    padding: 20px;
+    min-width: 220px;
+    max-width: 260px;
     background-color: var(--snippet-bg);
-    border-right: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin: 32px 24px 32px 0;
+    padding: 24px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 .main-content {
     flex: 1;
@@ -141,6 +147,38 @@ button:hover {
     border: 1px solid var(--border-color);
     border-radius: 5px;
     margin-bottom: 20px;
+    width: 100%;
+}
+
+.sidebar-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-top: 15px;
+}
+
+.sidebar-tool-btn {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 1em;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 1px 4px rgba(0,123,255,0.04);
+    width: 100%;
+    text-decoration: none;
+    display: block;
+}
+
+.sidebar-tool-btn:hover, .sidebar-tool-btn:focus {
+    background: var(--primary-hover-color);
+    color: #fff;
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 4px 16px rgba(0,123,255,0.08);
 }
 #motivational-tip {
     font-style: italic;
@@ -412,8 +450,10 @@ button:hover {
         flex-direction: column;
     }
     .sidebar {
-        width: 100%;
-        border-right: none;
+        min-width: 100%;
+        max-width: 100%;
+        margin: 0;
+        border-radius: 0;
         border-bottom: 1px solid var(--border-color);
     }
     .main-content {

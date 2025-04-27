@@ -1,0 +1,24 @@
+<div class="widget">
+    <div class="widget-title">Plagiarism Checker</div>
+    <textarea id="plagiarism-input" placeholder="Paste your text here..." style="width:100%;height:50px;"></textarea>
+    <textarea id="plagiarism-source" placeholder="Paste source text here..." style="width:100%;height:50px;margin-top:6px;"></textarea>
+    <button onclick="checkPlagiarism()">Check Similarity</button>
+    <div id="plagiarism-result" style="margin-top:8px;"></div>
+</div>
+<script>
+function checkPlagiarism() {
+    const text = document.getElementById('plagiarism-input').value.trim();
+    const source = document.getElementById('plagiarism-source').value.trim();
+    if (!text || !source) {
+        document.getElementById('plagiarism-result').textContent = "Please enter both texts.";
+        return;
+    }
+    // Simple similarity: count shared words
+    const wordsA = new Set(text.toLowerCase().split(/\W+/));
+    const wordsB = new Set(source.toLowerCase().split(/\W+/));
+    let shared = 0;
+    wordsA.forEach(w => { if (wordsB.has(w)) shared++; });
+    const similarity = wordsA.size ? Math.round((shared / wordsA.size) * 100) : 0;
+    document.getElementById('plagiarism-result').textContent = `Similarity: ${similarity}%`;
+}
+</script>

@@ -1,0 +1,14 @@
+<div class="widget">
+    <div class="widget-title">Reading Time Estimator</div>
+    <textarea id="reading-text" placeholder="Paste your text..." style="width:100%;height:50px;"></textarea>
+    <button onclick="estimateReadingTime()">Estimate</button>
+    <div id="reading-time-result" style="margin-top:8px;"></div>
+</div>
+<script>
+function estimateReadingTime() {
+    const text = document.getElementById('reading-text').value;
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    const minutes = Math.max(1, Math.round(words / 200));
+    document.getElementById('reading-time-result').textContent = `Estimated reading time: ${minutes} min`;
+}
+</script>

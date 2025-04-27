@@ -41,25 +41,22 @@
             font-size: 1.2em;
             margin-bottom: 16px;
         }
-        .dashboard-sidebar ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
+        .sidebar-tools {
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
-        .dashboard-sidebar li {
-            margin-bottom: 12px;
-        }
-        .dashboard-sidebar a {
+        .sidebar-tool-btn {
             color: var(--primary-color, #007bff);
             text-decoration: none;
             font-size: 1.05em;
-            padding: 6px 12px;
+            padding: 8px 12px;
             border-radius: 5px;
             display: block;
             transition: background 0.2s, color 0.2s;
         }
-        .dashboard-sidebar a:hover {
+        .sidebar-tool-btn:hover {
             background: var(--primary-color, #007bff);
             color: #fff;
         }
@@ -139,11 +136,48 @@
         /* Responsive */
         @media (max-width: 900px) {
             .dashboard-container { flex-direction: column; }
-            .dashboard-sidebar { margin-right: 0; margin-bottom: 24px; }
+            .dashboard-sidebar { 
+                margin-right: 0; 
+                margin-bottom: 24px;
+                min-width: 100%;
+                max-width: 100%;
+            }
         }
         @media (max-width: 600px) {
             .dashboard-widgets { grid-template-columns: 1fr; }
-            .dashboard-sidebar { min-width: 100vw; max-width: 100vw; }
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: 10px;
+            width: 80vw;
+            max-width: 900px;
+            height: 80vh;
+            max-height: 700px;
+            overflow-y: auto;
+            position: relative;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        }
+        .close-modal {
+            position: absolute;
+            top: 12px;
+            right: 18px;
+            font-size: 1.5em;
+            background: none;
+            border: none;
+            color: #333;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -154,19 +188,27 @@
         <div class="dashboard-container">
             <aside class="dashboard-sidebar">
                 <h2>Tools</h2>
-                <ul>
-                    <li><a href="dashboard.html">Dashboard</a></li>
-                    <li><a href="editor.html">Professional Editor</a></li>
-                    <li><a href="text-reference-combiner.html">Text & Reference Combiner</a></li>
-                    <li><a href="#">Plagiarism Checker (Coming Soon)</a></li>
-                    <li><a href="#">Citation Generator (Coming Soon)</a></li>
-                    <li><a href="#">Outline Builder (Coming Soon)</a></li>
-                    <li><a href="#">Reference Library (Coming Soon)</a></li>
-                    <li><a href="#">PDF Annotator (Coming Soon)</a></li>
-                    <li><a href="#">Math Equation Editor (Coming Soon)</a></li>
-                    <li><a href="#">Reading Time Estimator (Coming Soon)</a></li>
-                    <li><a href="#">Accessibility Checker (Coming Soon)</a></li>
-                </ul>
+                <div class="sidebar-tools">
+                    <a class="sidebar-tool-btn" href="dashboard.html">Dashboard</a>
+                    <a class="sidebar-tool-btn" href="editor.html">Professional Editor</a>
+                    <a class="sidebar-tool-btn" href="text-reference-combiner.html">Text & Reference Combiner</a>
+                    <a class="sidebar-tool-btn" href="#">Plagiarism Checker</a>
+                    <a class="sidebar-tool-btn" href="#">Citation Generator</a>
+                    <a class="sidebar-tool-btn" href="#">Outline Builder</a>
+                    <a class="sidebar-tool-btn" href="#">Reference Library</a>
+                    <a class="sidebar-tool-btn" href="#">PDF Annotator</a>
+                    <a class="sidebar-tool-btn" href="#">Math Equation Editor</a>
+                    <a class="sidebar-tool-btn" href="#">Reading Time Estimator</a>
+                    <a class="sidebar-tool-btn" href="#">Accessibility Checker</a>
+                    <a class="sidebar-tool-btn" href="#">Flashcards</a>
+                    <a class="sidebar-tool-btn" href="#">Mind Map</a>
+                    <a class="sidebar-tool-btn" href="#">Random Fact</a>
+                    <a class="sidebar-tool-btn" href="#">Simple Timer</a>
+                    <a class="sidebar-tool-btn" href="#">GPA Calculator</a>
+                    <a class="sidebar-tool-btn" href="#">Survey</a>
+                    <a class="sidebar-tool-btn" href="#">File Converter</a>
+                    <a class="sidebar-tool-btn" href="#">Language Translator</a>
+                </div>
             </aside>
             <main class="dashboard-main">
                 <h2>Welcome to AcademiaFlow!</h2>
@@ -302,6 +344,109 @@
                         <input id="api-key-input" placeholder="Enter API key..." style="width:70%;">
                         <button onclick="saveApiKey()">Save</button>
                         <div id="api-key-status" style="margin-top:8px;"></div>
+                    </div>
+                    <!-- 21. Plagiarism Checker -->
+                    <div class="widget">
+                        <div class="widget-title">Plagiarism Checker</div>
+                        <p>Coming soon!</p>
+                    </div>
+                    <!-- 22. Citation Generator -->
+                    <div class="widget">
+                        <div class="widget-title">Citation Generator</div>
+                        <p>Coming soon!</p>
+                    </div>
+                    <!-- 23. Outline Builder -->
+                    <div class="widget">
+                        <div class="widget-title">Outline Builder</div>
+                        <p>Coming soon!</p>
+                    </div>
+                    <!-- 24. PDF Annotator -->
+                    <div class="widget">
+                        <div class="widget-title">PDF Annotator</div>
+                        <p>Coming soon!</p>
+                    </div>
+                    <!-- 25. Math Equation Editor -->
+                    <div class="widget">
+                        <div class="widget-title">Math Equation Editor</div>
+                        <p>Coming soon!</p>
+                    </div>
+                    <!-- 26. Reading Time Estimator -->
+                    <div class="widget">
+                        <div class="widget-title">Reading Time Estimator</div>
+                        <p>Coming soon!</p>
+                    </div>
+                    <!-- 27. Accessibility Checker -->
+                    <div class="widget">
+                        <div class="widget-title">Accessibility Checker</div>
+                        <p>Coming soon!</p>
+                    </div>
+                    <!-- 28. Flashcards -->
+                    <div class="widget">
+                        <div class="widget-title">Flashcards</div>
+                        <input id="flashcard-front" placeholder="Front" style="width:100%;margin-bottom:4px;">
+                        <input id="flashcard-back" placeholder="Back" style="width:100%;margin-bottom:4px;">
+                        <button onclick="addFlashcard()">Add</button>
+                        <button onclick="showFlashcard()">Show Random</button>
+                        <div id="flashcard-display" style="margin-top:8px;"></div>
+                    </div>
+                    <!-- 29. Mind Map (simple) -->
+                    <div class="widget">
+                        <div class="widget-title">Simple Mind Map</div>
+                        <input id="mindmap-node" placeholder="Add node..." style="width:70%;">
+                        <button onclick="addMindMapNode()">Add</button>
+                        <ul id="mindmap-list"></ul>
+                    </div>
+                    <!-- 30. Random Academic Fact -->
+                    <div class="widget">
+                        <div class="widget-title">Random Academic Fact</div>
+                        <div id="fact-display">Click for a fact!</div>
+                        <button onclick="showFact()">Show Fact</button>
+                    </div>
+                    <!-- 31. Simple Timer -->
+                    <div class="widget">
+                        <div class="widget-title">Simple Timer</div>
+                        <input id="timer-minutes" type="number" min="1" placeholder="Minutes" style="width:60px;">
+                        <button onclick="startSimpleTimer()">Start</button>
+                        <div id="timer-countdown" style="margin-top:8px;"></div>
+                    </div>
+                    <!-- 32. GPA Calculator -->
+                    <div class="widget">
+                        <div class="widget-title">GPA Calculator</div>
+                        <input id="gpa-grades" placeholder="Grades (comma separated, e.g. 4,3,3.7)" style="width:100%;">
+                        <button onclick="calcGPA()">Calculate</button>
+                        <div id="gpa-result" style="margin-top:8px;"></div>
+                    </div>
+                    <!-- 33. Simple Survey -->
+                    <div class="widget">
+                        <div class="widget-title">Simple Survey</div>
+                        <label>How do you feel today?</label>
+                        <select id="survey-feel">
+                            <option>Great</option>
+                            <option>Good</option>
+                            <option>Okay</option>
+                            <option>Stressed</option>
+                        </select>
+                        <button onclick="submitSurvey()">Submit</button>
+                        <div id="survey-result" style="margin-top:8px;"></div>
+                    </div>
+                    <!-- 34. File Converter (txt to uppercase) -->
+                    <div class="widget">
+                        <div class="widget-title">File Converter (TXT to UPPERCASE)</div>
+                        <input type="file" id="file-upload" accept=".txt">
+                        <button onclick="convertFile()">Convert</button>
+                        <div id="file-convert-result" style="margin-top:8px;"></div>
+                    </div>
+                    <!-- 35. Language Translator (demo) -->
+                    <div class="widget">
+                        <div class="widget-title">Language Translator</div>
+                        <input id="trans-input" placeholder="Text to translate" style="width:100%;">
+                        <select id="trans-lang">
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                        </select>
+                        <button onclick="translateText()">Translate</button>
+                        <div id="trans-result" style="margin-top:8px;"></div>
                     </div>
                 </div>
             </main>
@@ -569,6 +714,128 @@
     document.getElementById('api-key-input').value = localStorage.getItem('api_key') || "";
     document.getElementById('api-key-status').textContent = localStorage.getItem('api_key') ? "API key saved." : "";
 
+    // Flashcards
+    function addFlashcard() {
+        const front = document.getElementById('flashcard-front').value;
+        const back = document.getElementById('flashcard-back').value;
+        if (front && back) {
+            const cards = JSON.parse(localStorage.getItem('flashcards') || "[]");
+            cards.push({front, back});
+            localStorage.setItem('flashcards', JSON.stringify(cards));
+            document.getElementById('flashcard-front').value = '';
+            document.getElementById('flashcard-back').value = '';
+        }
+    }
+    function showFlashcard() {
+        const cards = JSON.parse(localStorage.getItem('flashcards') || "[]");
+        if (cards.length === 0) {
+            document.getElementById('flashcard-display').textContent = "No cards yet.";
+            return;
+        }
+        const card = cards[Math.floor(Math.random() * cards.length)];
+        document.getElementById('flashcard-display').textContent = `Q: ${card.front} | A: ${card.back}`;
+    }
+
+    // Mind Map
+    function addMindMapNode() {
+        const input = document.getElementById('mindmap-node');
+        if (input.value.trim()) {
+            const ul = document.getElementById('mindmap-list');
+            const li = document.createElement('li');
+            li.textContent = input.value;
+            ul.appendChild(li);
+            input.value = '';
+            saveMindMap();
+        }
+    }
+    function saveMindMap() {
+        const items = [];
+        document.querySelectorAll('#mindmap-list li').forEach(li => items.push(li.textContent));
+        localStorage.setItem('mindmap_nodes', JSON.stringify(items));
+    }
+    function loadMindMap() {
+        const items = JSON.parse(localStorage.getItem('mindmap_nodes') || "[]");
+        const ul = document.getElementById('mindmap-list');
+        ul.innerHTML = "";
+        items.forEach(text => {
+            const li = document.createElement('li');
+            li.textContent = text;
+            ul.appendChild(li);
+        });
+    }
+
+    // Random Academic Fact
+    function showFact() {
+        const facts = [
+            "The shortest war in history lasted 38 minutes.",
+            "Honey never spoils.",
+            "Oxford University is older than the Aztec Empire.",
+            "Bananas are berries, but strawberries aren't.",
+            "The Eiffel Tower can be 15 cm taller during hot days."
+        ];
+        document.getElementById('fact-display').textContent = facts[Math.floor(Math.random() * facts.length)];
+    }
+
+    // Simple Timer
+    let timerInterval, timerTime = 0;
+    function startSimpleTimer() {
+        timerTime = parseInt(document.getElementById('timer-minutes').value) * 60;
+        if (isNaN(timerTime) || timerTime <= 0) return;
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (timerTime > 0) {
+                timerTime--;
+                let min = Math.floor(timerTime / 60);
+                let sec = timerTime % 60;
+                document.getElementById('timer-countdown').textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+            } else {
+                clearInterval(timerInterval);
+                document.getElementById('timer-countdown').textContent = "Time's up!";
+            }
+        }, 1000);
+    }
+
+    // GPA Calculator
+    function calcGPA() {
+        const grades = document.getElementById('gpa-grades').value.split(',').map(Number).filter(x => !isNaN(x));
+        if (grades.length === 0) {
+            document.getElementById('gpa-result').textContent = "Enter valid grades.";
+            return;
+        }
+        const gpa = (grades.reduce((a,b) => a+b, 0) / grades.length).toFixed(2);
+        document.getElementById('gpa-result').textContent = "GPA: " + gpa;
+    }
+
+    // Simple Survey
+    function submitSurvey() {
+        const feel = document.getElementById('survey-feel').value;
+        document.getElementById('survey-result').textContent = "Thanks for your feedback: " + feel;
+    }
+
+    // File Converter
+    function convertFile() {
+        const fileInput = document.getElementById('file-upload');
+        const file = fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result.toUpperCase();
+            document.getElementById('file-convert-result').textContent = text.slice(0, 100) + (text.length > 100 ? "..." : "");
+        };
+        reader.readAsText(file);
+    }
+
+    // Language Translator (demo, not real API)
+    function translateText() {
+        const text = document.getElementById('trans-input').value;
+        const lang = document.getElementById('trans-lang').value;
+        let translation = "";
+        if (lang === "es") translation = "Traducción simulada: " + text;
+        if (lang === "fr") translation = "Traduction simulée: " + text;
+        if (lang === "de") translation = "Simulierte Übersetzung: " + text;
+        document.getElementById('trans-result').textContent = translation;
+    }
+
     // On load, restore sticky notes, todos, etc.
     window.onload = function() {
         document.getElementById('quick-notes').value = localStorage.getItem('quick_notes') || "";
@@ -577,6 +844,7 @@
         loadReadingList();
         loadReferenceList();
         loadCitationList();
+        loadMindMap();
     };
     </script>
 </body>

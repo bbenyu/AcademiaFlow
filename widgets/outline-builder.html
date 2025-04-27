@@ -1,0 +1,19 @@
+<div class="widget">
+    <div class="widget-title">Outline Builder</div>
+    <ul id="outline-list"></ul>
+    <input id="outline-input" placeholder="Add section..." style="width:70%;">
+    <button onclick="addOutline()">Add</button>
+</div>
+<script>
+function addOutline() {
+    const input = document.getElementById('outline-input');
+    if (input.value.trim()) {
+        const li = document.createElement('li');
+        li.textContent = input.value;
+        li.draggable = true;
+        li.ondragstart = e => e.dataTransfer.setData('text/plain', input.value);
+        document.getElementById('outline-list').appendChild(li);
+        input.value = '';
+    }
+}
+</script>

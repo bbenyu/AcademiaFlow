@@ -1,0 +1,32 @@
+<div class="widget">
+    <div class="widget-title">Reference Library</div>
+    <input id="ref-input" placeholder="Add reference..." style="width:70%;">
+    <button onclick="addReferenceLib()">Add</button>
+    <input id="ref-search" placeholder="Search..." style="width:70%;margin-top:6px;">
+    <ul id="ref-list"></ul>
+</div>
+<script>
+function addReferenceLib() {
+    const input = document.getElementById('ref-input');
+    if (input.value.trim()) {
+        const refs = JSON.parse(localStorage.getItem('ref_lib') || "[]");
+        refs.push(input.value);
+        localStorage.setItem('ref_lib', JSON.stringify(refs));
+        input.value = '';
+        renderRefList();
+    }
+}
+function renderRefList() {
+    const refs = JSON.parse(localStorage.getItem('ref_lib') || "[]");
+    const search = document.getElementById('ref-search').value.toLowerCase();
+    const ul = document.getElementById('ref-list');
+    ul.innerHTML = "";
+    refs.filter(r => r.toLowerCase().includes(search)).forEach(r => {
+        const li = document.createElement('li');
+        li.textContent = r;
+        ul.appendChild(li);
+    });
+}
+document.getElementById('ref-search').oninput = renderRefList;
+renderRefList();
+</script>
