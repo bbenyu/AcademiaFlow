@@ -135,7 +135,18 @@
             <button onclick="closeRequestForm()" aria-label="Cancel feature request">Cancel</button>
         </div>
     </div>
-    
+    <div class="button-container">
+        <button onclick="addSnippet()" aria-label="Add snippet">Add Snippet</button>
+        <button onclick="toggleDarkMode()" aria-label="Toggle dark mode">Dark Mode</button>
+        <button onclick="clearAll()" aria-label="Clear all snippets">Clear All</button> <!-- New button -->
+        <div class="timer-container">
+            <label for="timer-minutes">Minutes until Break:</label>
+            <input type="number" id="timer-minutes" min="1" value="25" aria-label="Minutes until next break" style="width: 50px;">
+            <span id="timer-display">25:00</span>
+            <button onclick="startTimer()" aria-label="Start timer">Start</button>
+            <button onclick="stopTimer()" aria-label="Stop timer">Stop</button>
+        </div>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.12/docxtemplater.min.js"></script>
