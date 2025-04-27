@@ -59,19 +59,28 @@ function loadDashboard() {
     document.getElementById('auth-container').style.display = 'none';
     const dash = document.getElementById('dashboard-container');
     dash.innerHTML = `
-        <div class="top-nav">
-            <h1>Academic Tools Dashboard</h1>
-            <button onclick="logout()">Logout (${username})</button>
-        </div>
+        <nav class="top-nav">
+            <span class="site-title">Academic Tools Dashboard</span>
+            <div class="nav-links">
+                <button onclick="logout()">Logout (${username})</button>
+            </div>
+        </nav>
         <div class="container">
-            <div class="sidebar">
+            <aside class="sidebar">
                 <h2>Tools</h2>
                 <ul>
                     <li><a href="text-reference-combiner.html">Text & Reference Combiner</a></li>
                     <li><a href="editor.html">Editor</a></li>
-                    <!-- Add more tools here -->
+                    <li><a href="#">Plagiarism Checker (Coming Soon)</a></li>
+                    <li><a href="#">Citation Generator (Coming Soon)</a></li>
+                    <li><a href="#">Outline Builder (Coming Soon)</a></li>
+                    <li><a href="#">Reference Library (Coming Soon)</a></li>
+                    <li><a href="#">PDF Annotator (Coming Soon)</a></li>
+                    <li><a href="#">Math Equation Editor (Coming Soon)</a></li>
+                    <li><a href="#">Reading Time Estimator (Coming Soon)</a></li>
+                    <li><a href="#">Accessibility Checker (Coming Soon)</a></li>
                 </ul>
-            </div>
+            </aside>
             <main class="main-content">
                 <h2>Welcome, ${username}!</h2>
                 <p>Select a tool from the sidebar to get started.</p>

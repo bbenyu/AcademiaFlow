@@ -2,8 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Editor Tool</title>
+    <title>Professional Editor</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Quill Editor CSS -->
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <style>
+        #editor-toolbar {
+            margin-bottom: 8px;
+        }
+        #editor-container {
+            height: 400px;
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid var(--border-color, #ccc);
+        }
+        #editor-status-bar {
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95em;
+        }
+        .find-replace-bar {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .dark-mode #editor-container {
+            background: #222;
+            color: #eee;
+        }
+    </style>
 </head>
 <body>
     <nav class="top-nav">
@@ -11,33 +41,222 @@
         <a href="index.html" style="margin-left:auto;">Dashboard</a>
     </nav>
     <div class="container">
+        <aside class="sidebar">
+            <h2>Tools</h2>
+            <ul>
+                <li><a href="editor.html">Professional Editor</a></li>
+                <li><a href="#">Text & Reference Combiner</a></li>
+                <li><a href="#">Plagiarism Checker (Coming Soon)</a></li>
+                <li><a href="#">Citation Generator (Coming Soon)</a></li>
+                <li><a href="#">Outline Builder (Coming Soon)</a></li>
+                <li><a href="#">Reference Library (Coming Soon)</a></li>
+                <li><a href="#">PDF Annotator (Coming Soon)</a></li>
+                <li><a href="#">Math Equation Editor (Coming Soon)</a></li>
+            </ul>
+        </aside>
         <main class="main-content">
-            <h2>Editor Tool</h2>
-            <textarea id="editor-area" style="width:100%;height:400px;" placeholder="Start writing..."></textarea>
-            <div style="margin-top:10px;">
-                <button onclick="saveEditorContent()">Save</button>
-                <button onclick="loadEditorContent()">Load</button>
+            <h2>Professional Editor</h2>
+            <p>Rich text editor with 10 free features to enhance your writing experience.</p>
+            
+            <!-- Quill Toolbar -->
+            <div id="editor-toolbar">
+                <span class="ql-formats">
+                    <select class="ql-header">
+                        <option value="1">Heading 1</option>
+                        <option value="2">Heading 2</option>
+                        <option selected>Normal</option>
+                    </select>
+                    <select class="ql-font"></select>
+                </span>
+                <span class="ql-formats">
+                    <button class="ql-bold"></button>
+                    <button class="ql-italic"></button>
+                    <button class="ql-underline"></button>
+                    <button class="ql-strike"></button>
+                </span>
+                <span class="ql-formats">
+                    <button class="ql-list" value="ordered"></button>
+                    <button class="ql-list" value="bullet"></button>
+                    <button class="ql-indent" value="-1"></button>
+                    <button class="ql-indent" value="+1"></button>
+                </span>
+                <span class="ql-formats">
+                    <button class="ql-link"></button>
+                    <button class="ql-image"></button>
+                </span>
+                <span class="ql-formats">
+                    <button class="ql-undo" title="Undo"><b>&larr;</b></button>
+                    <button class="ql-redo" title="Redo"><b>&rarr;</b></button>
+                </span>
+                <span class="ql-formats">
+                    <button id="toggle-dark-mode" title="Toggle Dark Mode">🌙</button>
+                </span>
+            </div>
+            
+            <!-- Editor -->
+            <div id="editor-container"></div>
+            
+            <!-- Status Bar -->
+            <div id="editor-status-bar">
+                <span id="word-count">Words: 0 | Characters: 0</span>
+                <div>
+                    <button onclick="exportPDF()">Export PDF</button>
+                    <button onclick="exportDOCX()">Export DOCX</button>
+                    <button onclick="saveEditorContent()">Save</button>
+                    <button onclick="loadEditorContent()">Load</button>
+                </div>
+            </div>
+            
+            <!-- Find & Replace -->
+            <div class="find-replace-bar">
+                <input type="text" id="find-text" placeholder="Find...">
+                <input type="text" id="replace-text" placeholder="Replace with...">
+                <button onclick="findInEditor()">Find</button>
+                <button onclick="replaceInEditor()">Replace</button>
                 <span id="editor-status"></span>
             </div>
         </main>
     </div>
+    
+    <!-- Quill JS -->
+    <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- docx for DOCX export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.0.2/docx.umd.min.js"></script>
+    
     <script>
+    // 1. Initialize Quill
+    var quill = new Quill('#editor-container', {
+        modules: {
+            toolbar: '#editor-toolbar',
+            history: { delay: 1000, maxStack: 100, userOnly: true }
+        },
+        theme: 'snow'
+    });
+
+    // 2. Undo/Redo
+    document.querySelector('.ql-undo').addEventListener('click', () => quill.history.undo());
+    document.querySelector('.ql-redo').addEventListener('click', () => quill.history.redo());
+
+    // 3. Word/Character Count
+    function updateWordCount() {
+        const text = quill.getText().trim();
+        const words = text.length ? text.split(/\s+/).length : 0;
+        const chars = text.replace(/\s/g, '').length;
+        document.getElementById('word-count').textContent = `Words: ${words} | Characters: ${chars}`;
+    }
+    quill.on('text-change', updateWordCount);
+    updateWordCount();
+
+    // 4. Save/Load
     function saveEditorContent() {
-        const content = document.getElementById('editor-area').value;
+        const content = quill.root.innerHTML;
         const user = localStorage.getItem('academictools_user');
         if (user) {
             localStorage.setItem('editor_' + user, content);
             document.getElementById('editor-status').textContent = "Saved!";
+            setTimeout(() => {
+                document.getElementById('editor-status').textContent = "";
+            }, 2000);
         }
     }
+    
     function loadEditorContent() {
         const user = localStorage.getItem('academictools_user');
         if (user) {
-            document.getElementById('editor-area').value = localStorage.getItem('editor_' + user) || "";
+            const html = localStorage.getItem('editor_' + user) || "";
+            quill.root.innerHTML = html;
+            updateWordCount();
             document.getElementById('editor-status').textContent = "Loaded!";
+            setTimeout(() => {
+                document.getElementById('editor-status').textContent = "";
+            }, 2000);
         }
     }
+    
     window.onload = loadEditorContent;
+
+    // 5. Export as PDF
+    function exportPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.html(quill.root, {
+            callback: function (pdf) {
+                pdf.save("document.pdf");
+            },
+            x: 10,
+            y: 10
+        });
+    }
+
+    // 6. Export as DOCX
+    function exportDOCX() {
+        const { Document, Packer, Paragraph, TextRun } = window.docx;
+        const doc = new Document({
+            sections: [{
+                properties: {},
+                children: [
+                    new Paragraph({
+                        children: [
+                            new TextRun(quill.getText())
+                        ]
+                    })
+                ]
+            }]
+        });
+        
+        Packer.toBlob(doc).then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "document.docx";
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+    }
+
+    // 7. Find & Replace
+    function findInEditor() {
+        const findText = document.getElementById('find-text').value;
+        if (!findText) return;
+        const content = quill.getText();
+        const idx = content.indexOf(findText);
+        if (idx !== -1) {
+            quill.setSelection(idx, findText.length);
+        } else {
+            document.getElementById('editor-status').textContent = "Text not found.";
+            setTimeout(() => {
+                document.getElementById('editor-status').textContent = "";
+            }, 2000);
+        }
+    }
+    
+    function replaceInEditor() {
+        const findText = document.getElementById('find-text').value;
+        const replaceText = document.getElementById('replace-text').value;
+        if (!findText) return;
+        const content = quill.getText();
+        const idx = content.indexOf(findText);
+        if (idx !== -1) {
+            quill.deleteText(idx, findText.length);
+            quill.insertText(idx, replaceText);
+            document.getElementById('editor-status').textContent = "Text replaced.";
+            setTimeout(() => {
+                document.getElementById('editor-status').textContent = "";
+            }, 2000);
+        } else {
+            document.getElementById('editor-status').textContent = "Text not found.";
+            setTimeout(() => {
+                document.getElementById('editor-status').textContent = "";
+            }, 2000);
+        }
+    }
+
+    // 8. Dark Mode Toggle
+    document.getElementById('toggle-dark-mode').onclick = function() {
+        document.body.classList.toggle('dark-mode');
+    };
     </script>
 </body>
 </html>
