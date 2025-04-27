@@ -3,104 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text Combiner for Researchers</title>
+    <title>Text Combiner</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.28.0/docxtemplater.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.26.0/docxtemplater.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
 </head>
 <body>
-    <div id="dark-mode-toggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">🌓 Dark Mode</div>
-    <div id="preview">
-        <h3>Live Preview</h3>
-        <div id="preview-content"></div>
-    </div>
-    <div id="main-content">
-        <h1>Text Combiner for Researchers</h1>
-        <p id="motivational-tip"></p>
-        <div class="dashboard">
-            <div id="goal-tracker">
-                <span>Set a word count goal and track progress!</span>
-                <input type="number" id="word-goal" min="1" placeholder="e.g., 1000" aria-label="Word count goal">
+    <header>
+        <h1>Text Combiner</h1>
+        <div class="button-container">
+            <button onclick="toggleDarkMode()" aria-label="Toggle dark mode">Toggle Dark Mode</button>
+            <button onclick="savePreferences()" aria-label="Save preferences">Save Preferences</button>
+            <button onclick="showRequestForm()" aria-label="Request feature">Request Feature</button>
+            <button onclick="showReferenceLibrary()" aria-label="Open reference library">Reference Library</button>
+            <button onclick="toggleSaveOnline()" aria-label="Save online">Save Online</button>
+            <div id="save-online-options" class="save-options">
+                <button onclick="saveToGoogleDrive()">Google Drive</button>
+                <button onclick="saveToDropbox()">Dropbox</button>
+                <button onclick="saveToOneDrive()">OneDrive</button>
+                <button onclick="shareSecurely()">Share Securely</button>
             </div>
-            <div id="goal-progress">Goal: <span id="goal-value">0</span> | Current: <span id="current-words">0</span></div>
-            <div id="timer-section">
-                <span id="timer-display">25:00</span>
-                <button onclick="startTimer()" aria-label="Start timer">Start</button>
-                <button onclick="stopTimer()" aria-label="Stop timer">Stop</button>
-            </div>
-            Progress: <span id="progress">0%</span>
-        </div>
-        <div id="snippets-container" class="grid-container">
-            <div class="snippet" draggable="true">
-                <h3 class="snippet-header">Text Snippet 1</h3>
-                <textarea id="snippet1" class="snippet-content" aria-label="Text Snippet 1"></textarea>
-                <div class="snippet-meta">
-                    <span id="word-count1">Words: 0</span>
-                    <div><label>Category:</label></div>
-                    <select id="source1" aria-label="Source type for Snippet 1">
-                        <option value="book">Book</option>
-                        <option value="journal">Journal</option>
-                        <option value="website">Website</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div class="tooltip">
-                    <input type="text" id="ref1" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 1">
-                    <span class="tooltiptext" id="ref-tooltip1"></span>
-                    <button onclick="formatCitation(1)" aria-label="Format citation for Snippet 1">Format</button>
-                </div>
-                <span id="error1" class="error"></span>
-                <span id="correct1" class="correct">Correct</span>
-            </div>
-            <div class="snippet" draggable="true">
-                <h3 class="snippet-header">Text Snippet 2</h3>
-                <textarea id="snippet2" class="snippet-content" aria-label="Text Snippet 2"></textarea>
-                <div class="snippet-meta">
-                    <span id="word-count2">Words: 0</span>
-                    <div><label>Category:</label></div>
-                    <select id="source2" aria-label="Source type for Snippet 2">
-                        <option value="book">Book</option>
-                        <option value="journal">Journal</option>
-                        <option value="website">Website</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div class="tooltip">
-                    <input type="text" id="ref2" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 2">
-                    <span class="tooltiptext" id="ref-tooltip2"></span>
-                    <button onclick="formatCitation(2)" aria-label="Format citation for Snippet 2">Format</button>
-                </div>
-                <span id="error2" class="error"></span>
-                <span id="correct2" class="correct">Correct</span>
-            </div>
-            <div class="snippet" draggable="true">
-                <h3 class="snippet-header">Text Snippet 3</h3>
-                <textarea id="snippet3" class="snippet-content" aria-label="Text Snippet 3"></textarea>
-                <div class="snippet-meta">
-                    <span id="word-count3">Words: 0</span>
-                    <div><label>Category:</label></div>
-                    <select id="source3" aria-label="Source type for Snippet 3">
-                        <option value="book">Book</option>
-                        <option value="journal">Journal</option>
-                        <option value="website">Website</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div class="tooltip">
-                    <input type="text" id="ref3" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 3">
-                    <span class="tooltiptext" id="ref-tooltip3"></span>
-                    <button onclick="formatCitation(3)" aria-label="Format citation for Snippet 3">Format</button>
-                </div>
-                <span id="error3" class="error"></span>
-                <span id="correct3" class="correct">Correct</span>
+            <button onclick="toggleSaveLocally()" aria-label="Save locally">Save Locally</button>
+            <div id="save-locally-options" class="save-options">
+                <button onclick="savePDF()">PDF</button>
+                <button onclick="saveDocx()">DOCX</button>
+                <button onclick="saveText()">Text</button>
+                <button onclick="saveMarkdown()">Markdown</button>
+                <button onclick="saveRIS()">RIS</button>
+                <button onclick="saveLatex()">LaTeX</button>
+                <button onclick="saveFlashcards()">Flashcards</button>
+                <button onclick="saveZip()">ZIP</button>
             </div>
         </div>
-        <div class="button-group">
-            <h4>Input Controls</h4>
-            <select id="citationStyle" aria-label="Select citation style">
+    </header>
+    <main>
+        <div class="config">
+            <label for="citationStyle">Citation Style:</label>
+            <select id="citationStyle" aria-label="Citation style">
                 <option value="apa">APA</option>
                 <option value="mla">MLA</option>
                 <option value="chicago">Chicago</option>
@@ -113,77 +55,79 @@
                 <option value="bluebook">Bluebook</option>
                 <option value="custom">Custom</option>
             </select>
-            <button onclick="combineText()" aria-label="Combine text and generate bibliography">Combine & Generate Bibliography</button>
-            <button onclick="clearAll()" aria-label="Clear all snippets">Clear All</button>
-        </div>
-        <div class="button-group">
-            <h4>Settings</h4>
-            <button onclick="savePreferences()" aria-label="Save preferences">Save Preferences</button>
-            <button onclick="showRequestForm()" aria-label="Request a feature">Request Feature</button>
-            <button onclick="showReferenceLibrary()" aria-label="Open reference library">Reference Library</button>
-        </div>
-        <div id="output-modal" role="dialog" aria-label="Result dialog">
-            <div id="output-content">
-                <span class="close-btn" onclick="closeModal()" aria-label="Close dialog">×</span>
-                <h2>Your Research Synthesis</h2>
-                <div id="errors-list"></div>
-                <div id="export-preview"></div>
-                <div id="output-text" aria-label="Combined text and bibliography"></div>
-                <div id="word-count-output">Total Words: 0 (Excluding Citations: 0)</div>
-                <div class="button-container">
-                    <span id="copy-message">Copied!</span>
-                    <button onclick="copyText()" aria-label="Copy to clipboard">Copy to Clipboard</button>
-                    <button onclick="toggleSaveOnline()" aria-label="Save online">Save Online</button>
-                    <div id="save-online-options" class="save-options">
-                        <button onclick="saveToGoogleDrive()">Google Drive</button>
-                        <button onclick="saveToDropbox()">Dropbox</button>
-                        <button onclick="saveToOneDrive()">OneDrive</button>
-                        <button onclick="shareSecurely()">Share Securely</button>
-                    </div>
-                    <button onclick="toggleSaveLocally()" aria-label="Save locally">Save Locally</button>
-                    <div id="save-locally-options" class="save-options">
-                        <button onclick="savePDF()">PDF</button>
-                        <button onclick="saveDocx()">DOCX</button>
-                        <button onclick="saveText()">Text</button>
-                        <button onclick="saveMarkdown()">Markdown</button>
-                        <button onclick="saveRIS()">RIS</button>
-                        <button onclick="saveLatex()">LaTeX</button>
-                        <button onclick="saveFlashcards()">Flashcards</button>
-                        <button onclick="saveZip()">ZIP</button>
-                    </div>
+            <div class="word-goal-container">
+                <label for="word-goal">Word Count Goal:</label>
+                <input type="number" id="word-goal" min="0" aria-label="Word count goal">
+                <div id="goal-progress">
+                    <span>Current: </span><span id="current-words">0</span> / <span id="goal-value">0</span>
+                    <span id="goal-reached" style="display: none;">✔</span>
                 </div>
             </div>
+            <div class="timer-container">
+                <span id="timer-display">25:00</span>
+                <button onclick="startTimer()" aria-label="Start timer">Start</button>
+                <button onclick="stopTimer()" aria-label="Stop timer">Stop</button>
+                <span id="motivational-tip"></span>
+            </div>
         </div>
-        <div id="custom-style-modal">
-            <h3>Define Custom Citation Style</h3>
-            <input type="text" id="custom-style-input" placeholder="e.g., {author}, {year}, {title}" aria-label="Custom citation style">
-            <button onclick="saveCustomStyle()">Save</button>
-            <button onclick="closeCustomStyleModal()">Cancel</button>
+        <div id="snippets-container"></div>
+        <div id="preview">
+            <h3>Live Preview</h3>
+            <div id="preview-content"></div>
         </div>
-        <div id="citation-format-modal">
-            <h3>Format Citation</h3>
-            <input type="text" id="format-author" placeholder="Author" aria-label="Author">
-            <input type="text" id="format-year" placeholder="Year" aria-label="Year">
-            <input type="text" id="format-title" placeholder="Title" aria-label="Title">
-            <input type="text" id="format-journal" placeholder="Journal (optional)" aria-label="Journal">
-            <button onclick="applyFormattedCitation()">Apply</button>
-            <button onclick="closeCitationFormatModal()">Cancel</button>
+        <button onclick="combineText()" aria-label="Combine text">Combine</button>
+    </main>
+    <div id="output-modal">
+        <div id="output-content">
+            <h3>Combined Text</h3>
+            <div id="output-text"></div>
+            <div id="word-count-output"></div>
+            <div id="errors-list"></div>
+            <button onclick="copyText()" aria-label="Copy text">Copy</button>
+            <span id="copy-message" style="display: none;">Copied!</span>
+            <button onclick="closeModal()" aria-label="Close output">Close</button>
         </div>
-        <div id="reference-library-modal">
-            <h3>Reference Library</h3>
-            <input type="text" id="library-ref" placeholder="Add reference (e.g., Smith, 2020, Title)" aria-label="Add reference">
-            <input type="text" id="library-tag" placeholder="Tag (e.g., Project A)" aria-label="Reference tag">
-            <button onclick="addReferenceToLibrary()">Add</button>
-            <div id="library-list"></div>
-            <button onclick="closeReferenceLibrary()">Close</button>
-        </div>
-        <div id="request-form">
-            <h3>Request a Feature</h3>
-            <textarea id="feature-request" placeholder="Describe your feature idea. Optionally, attach a screenshot of the tool." aria-label="Feature request"></textarea>
-            <button onclick="submitRequest()">Submit</button>
-            <button onclick="closeRequestForm()">Cancel</button>
-        </div>
-        <div id="goal-reached">✔</div>
+    </div>
+    <div id="custom-style-modal">
+        <h3>Custom Citation Style</h3>
+        <input type="text" id="custom-style-input" placeholder="e.g., {author}, {year}, {title}" aria-label="Custom citation style">
+        <button onclick="saveCustomStyle()">Save</button>
+        <button onclick="closeCustomStyleModal()">Cancel</button>
+    </div>
+    <div id="citation-format-modal">
+        <h3>Format Citation</h3>
+        <input type="text" id="format-author" placeholder="Author (e.g., Smith, J.)" aria-label="Citation author">
+        <input type="text" id="format-year" placeholder="Year (e.g., 2020)" aria-label="Citation year">
+        <input type="text" id="format-title" placeholder="Title" aria-label="Citation title">
+        <input type="text" id="format-journal" placeholder="Journal/Source" aria-label="Citation journal">
+        <button onclick="applyFormattedCitation()">Apply</button>
+        <button onclick="closeCitationFormatModal()">Cancel</button>
+    </div>
+    <div id="reference-library-modal">
+        <h3>Reference Library</h3>
+        <input type="text" id="library-search" placeholder="Search by reference or tag" aria-label="Search references">
+        <input type="text" id="library-ref" placeholder="Add reference (e.g., Smith, 2020, Title)" aria-label="Add reference">
+        <input type="text" id="library-tag" placeholder="Tag (e.g., Project A)" aria-label="Reference tag">
+        <button onclick="addReferenceToLibrary()">Add</button>
+        <button onclick="deleteSelectedReferences()">Delete Selected</button>
+        <table id="library-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select-all" aria-label="Select all references"></th>
+                    <th onclick="sortLibrary('ref')">Reference</th>
+                    <th onclick="sortLibrary('tag')">Tag</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="library-list"></tbody>
+        </table>
+        <button onclick="closeReferenceLibrary()">Close</button>
+    </div>
+    <div id="request-form">
+        <h3>Feature Request</h3>
+        <textarea id="feature-request" placeholder="Describe your feature request" aria-label="Feature request"></textarea>
+        <button onclick="submitRequest()">Submit</button>
+        <button onclick="closeRequestForm()">Cancel</button>
     </div>
     <script src="script.js"></script>
 </body>
