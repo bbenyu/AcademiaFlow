@@ -82,11 +82,14 @@
         </div>
     </div>
     <div id="custom-style-modal">
-        <h3>Custom Citation Style</h3>
-        <input type="text" id="custom-style-input" placeholder="{author}, {year}, {title}" aria-label="Custom citation style">
-        <button onclick="saveCustomStyle()" aria-label="Save custom style">Save</button>
-        <button onclick="closeCustomStyleModal()" aria-label="Close custom style modal">Cancel</button>
-    </div>
+        <div>
+            <button class="close-modal" onclick="closeCustomStyleModal()" aria-label="Close custom style modal">X</button>
+            <h3>Custom Citation Style</h3>
+            <input type="text" id="custom-style-input" placeholder="{author}, {year}, {title}" aria-label="Custom citation style">
+            <button onclick="saveCustomStyle()" aria-label="Save custom style">Save</button>
+            <button onclick="closeCustomStyleModal()" aria-label="Close custom style modal">Cancel</button>
+        </div>
+</div>
     <div id="citation-format-modal">
         <div id="citation-format-content">
             <h3>Format Citation</h3>
@@ -98,32 +101,41 @@
             <button onclick="closeCitationFormatModal()" aria-label="Close citation format modal">Cancel</button>
         </div>
     </div>
+
     <div id="reference-library-modal">
-        <h3>Reference Library</h3>
-        <input type="text" id="library-search" placeholder="Search references" aria-label="Search references">
-        <input type="text" id="library-ref" placeholder="New reference" aria-label="New reference">
-        <input type="text" id="library-tag" placeholder="Tag" aria-label="Reference tag">
-        <button onclick="addReferenceToLibrary()" aria-label="Add to library">Add</button>
-        <table>
-            <thead>
-                <tr>
-                    <th><input type="checkbox" id="select-all" aria-label="Select all references"></th>
-                    <th><button onclick="sortLibrary('ref')" aria-label="Sort by reference">Reference</button></th>
-                    <th><button onclick="sortLibrary('tag')" aria-label="Sort by tag">Tag</button></th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="library-list"></tbody>
-        </table>
-        <button onclick="deleteSelectedReferences()" aria-label="Delete selected references">Delete Selected</button>
-        <button onclick="closeReferenceLibrary()" aria-label="Close reference library">Close</button>
+        <div>
+            <button class="close-modal" onclick="closeReferenceLibrary()" aria-label="Close reference library">X</button>
+            <h3>Reference Library</h3>
+            <input type="text" id="library-search" placeholder="Search references" aria-label="Search references">
+            <input type="text" id="library-ref" placeholder="New reference" aria-label="New reference">
+            <input type="text" id="library-tag" placeholder="Tag" aria-label="Reference tag">
+            <button onclick="addReferenceToLibrary()" aria-label="Add to library">Add</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="select-all" aria-label="Select all references"></th>
+                        <th><button onclick="sortLibrary('ref')" aria-label="Sort by reference">Reference</button></th>
+                        <th><button onclick="sortLibrary('tag')" aria-label="Sort by tag">Tag</button></th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="library-list"></tbody>
+            </table>
+            <button onclick="deleteSelectedReferences()" aria-label="Delete selected references">Delete Selected</button>
+            <button onclick="closeReferenceLibrary()" aria-label="Close reference library">Close</button>
+        </div>
     </div>
+    
     <div id="request-form">
-        <h3>Feature Request</h3>
-        <textarea id="feature-request" placeholder="Describe your feature request" aria-label="Feature request"></textarea>
-        <button onclick="submitRequest()" aria-label="Submit feature request">Submit</button>
-        <button onclick="closeRequestForm()" aria-label="Cancel feature request">Cancel</button>
+        <div>
+            <button class="close-modal" onclick="closeRequestForm()" aria-label="Close feature request">X</button>
+            <h3>Feature Request</h3>
+            <textarea id="feature-request" placeholder="Describe your feature request" aria-label="Feature request"></textarea>
+            <button onclick="submitRequest()" aria-label="Submit feature request">Submit</button>
+            <button onclick="closeRequestForm()" aria-label="Cancel feature request">Cancel</button>
+        </div>
     </div>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.12/docxtemplater.min.js"></script>
