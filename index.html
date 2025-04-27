@@ -9,15 +9,46 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
+        :root {
+            --bg-color: #f0f0f0;
+            --text-color: #333;
+            --snippet-bg: #fff;
+            --border-color: #ccc;
+        }
+        .dark-mode {
+            --bg-color: #333;
+            --text-color: #ddd;
+            --snippet-bg: #444;
+            --border-color: #555;
+        }
         body {
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            text-align: center;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             padding: 20px;
             font-size: 18px;
+            display: flex;
         }
-        h1 { color: #333; }
-        p { color: #555; margin-bottom: 20px; }
+        h1 { margin-top: 0; }
+        p { color: var(--text-color); margin-bottom: 20px; }
+        #preview {
+            width: 25%;
+            min-width: 200px;
+            max-width: 400px;
+            resize: horizontal;
+            overflow: auto;
+            background-color: var(--snippet-bg);
+            border-right: 2px solid var(--border-color);
+            padding: 10px;
+            margin-right: 20px;
+        }
+        #preview-content {
+            white-space: pre-wrap;
+            font-size: 16px;
+        }
+        #main-content {
+            flex: 1;
+        }
         .grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -25,8 +56,8 @@
             margin-bottom: 20px;
         }
         .snippet {
-            background-color: #fff;
-            border: 1px solid #ccc;
+            background-color: var(--snippet-bg);
+            border: 1px solid var(--border-color);
             padding: 15px;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -40,7 +71,7 @@
             width: 100%;
             height: 80px;
             margin: 10px 0;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-color);
             border-radius: 3px;
             font-size: 16px;
             transition: height 0.3s;
@@ -50,7 +81,7 @@
             width: 100%;
             margin: 5px 0;
             padding: 5px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-color);
             border-radius: 3px;
             font-size: 16px;
         }
@@ -82,9 +113,11 @@
             background-color: rgba(0,0,0,0.5);
             justify-content: center;
             align-items: center;
+            z-index: 1000;
         }
         #output-content {
-            background-color: white;
+            background-color: var(--snippet-bg);
+            color: var(--text-color);
             padding: 20px;
             border-radius: 5px;
             width: 80%;
@@ -123,52 +156,90 @@
             justify-content: flex-end;
             align-items: center;
         }
+        .save-options {
+            display: none;
+            position: absolute;
+            background-color: var(--snippet-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .save-options button {
+            display: block;
+            width: 100%;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
-    <h1>Text Combiner for Researchers</h1>
-    <p>
-        Combine text snippets and manage citations effortlessly. Input your snippets and references, choose a citation style, and generate a polished output with a bibliography.
-    </p>
-    <div id="snippets-container" class="grid-container">
-        <div class="snippet">
-            <h3>Text Snippet 1</h3>
-            <textarea id="snippet1" placeholder="Paste your first text snippet here" spellcheck="true"></textarea>
-            <input type="text" id="ref1" placeholder="e.g., Smith, J. (2020). Title. Journal.">
-        </div>
+    <div id="preview">
+        <h3>Live Preview</h3>
+        <div id="preview-content"></div>
     </div>
-    <select id="citationStyle" onchange="updatePlaceholders()">
-        <option value="apa">APA</option>
-        <option value="mla">MLA</option>
-        <option value="chicago">Chicago</option>
-        <option value="harvard">Harvard</option>
-        <option value="ieee">IEEE</option>
-        <option value="ama">AMA</option>
-        <option value="vancouver">Vancouver</option>
-        <option value="turabian">Turabian</option>
-        <option value="oscola">OSCOLA</option>
-        <option value="bluebook">Bluebook</option>
-    </select>
-    <button onclick="combineText()">Combine & Generate Bibliography</button>
-    <button onclick="clearAll()">Clear All</button>
-    <div id="output-modal">
-        <div id="output-content">
-            <span class="close-btn" onclick="closeModal()">×</span>
-            <h2>Your Research Synthesis</h2>
-            <div id="output-text"></div>
-            <div class="button-container">
-                <span id="copy-message">Copied!</span>
-                <button onclick="copyText()">Copy to Clipboard</button>
-                <button onclick="savePDF()">Save as PDF</button>
-                <button onclick="saveText()">Save as Text</button>
-                <button onclick="saveDocx()">Save as DOCX</button>
-                <button onclick="saveToGoogleDrive()">Save to Google Drive</button>
-                <button onclick="saveToDropbox()">Save to Dropbox</button>
+    <div id="main-content">
+        <h1>Text Combiner for Researchers</h1>
+        <p>
+            Combine text snippets and manage citations effortlessly. Input your snippets and references, choose a citation style, and generate a polished output with a bibliography.
+        </p>
+        <div id="snippets-container" class="grid-container">
+            <div class="snippet">
+                <h3>Text Snippet 1</h3>
+                <textarea id="snippet1" placeholder="Paste your first text snippet here" spellcheck="true"></textarea>
+                <input type="text" id="ref1" placeholder="e.g., Smith, J. (2020). Title. Journal.">
+            </div>
+            <div class="snippet">
+                <h3>Text Snippet 2</h3>
+                <textarea id="snippet2" placeholder="Paste your second text snippet here" spellcheck="true"></textarea>
+                <input type="text" id="ref2" placeholder="e.g., Smith, J. (2020). Title. Journal.">
+            </div>
+            <div class="snippet">
+                <h3>Text Snippet 3</h3>
+                <textarea id="snippet3" placeholder="Paste your third text snippet here" spellcheck="true"></textarea>
+                <input type="text" id="ref3" placeholder="e.g., Smith, J. (2020). Title. Journal.">
+            </div>
+        </div>
+        <label><input type="checkbox" id="categorize"> Categorize Snippets by Theme</label>
+        <select id="citationStyle" onchange="updatePlaceholders()">
+            <option value="apa">APA</option>
+            <option value="mla">MLA</option>
+            <option value="chicago">Chicago</option>
+            <option value="harvard">Harvard</option>
+            <option value="ieee">IEEE</option>
+            <option value="ama">AMA</option>
+            <option value="vancouver">Vancouver</option>
+            <option value="turabian">Turabian</option>
+            <option value="oscola">OSCOLA</option>
+            <option value="bluebook">Bluebook</option>
+        </select>
+        <button onclick="combineText()">Combine & Generate Bibliography</button>
+        <button onclick="clearAll()">Clear All</button>
+        <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+        <div id="output-modal">
+            <div id="output-content">
+                <span class="close-btn" onclick="closeModal()">×</span>
+                <h2>Your Research Synthesis</h2>
+                <div id="output-text"></div>
+                <div class="button-container">
+                    <span id="copy-message">Copied!</span>
+                    <button onclick="copyText()">Copy to Clipboard</button>
+                    <button onclick="toggleSaveOnline()">Save Online</button>
+                    <div id="save-online-options" class="save-options">
+                        <button onclick="saveToGoogleDrive()">Google Drive</button>
+                        <button onclick="saveToDropbox()">Dropbox</button>
+                        <button onclick="saveToOneDrive()">OneDrive</button>
+                    </div>
+                    <button onclick="toggleSaveLocally()">Save Locally</button>
+                    <div id="save-locally-options" class="save-options">
+                        <button onclick="savePDF()">PDF</button>
+                        <button onclick="saveDocx()">DOCX</button>
+                        <button onclick="saveText()">Text</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     <script>
-        let snippetCount = 1;
+        let snippetCount = 3;
 
         function addSnippet() {
             snippetCount++;
@@ -183,6 +254,7 @@
             container.appendChild(newSnippet);
             newSnippet.scrollIntoView({ behavior: 'smooth' });
             updateAutoAdd();
+            updatePreview();
         }
 
         function updateAutoAdd() {
@@ -199,9 +271,36 @@
             switch (style) {
                 case 'apa': return 'e.g., Smith, J. (2020). Title. Journal.';
                 case 'mla': return 'e.g., Smith, John. "Title." Journal, 2020.';
-                case 'chicago': return 'e.g., Smith, John. 2020. Title. Journal.';
+                case 'chicago': return 'e.g., Smith, John. 2020. "Title." Journal.';
+                case 'harvard': return 'e.g., Smith, J., 2020. Title. Journal.';
+                case 'ieee': return 'e.g., J. Smith, "Title," Journal, 2020.';
+                case 'ama': return 'e.g., Smith J. Title. Journal. 2020.';
+                case 'vancouver': return 'e.g., Smith J. Title. Journal 2020.';
+                case 'turabian': return 'e.g., Smith, John. 2020. Title. Journal.';
+                case 'oscola': return 'e.g., Smith J, "Title" (2020) Journal.';
+                case 'bluebook': return 'e.g., John Smith, Title, Journal (2020).';
                 default: return 'Reference';
             }
+        }
+
+        function validateReference(ref, style, index) {
+            const patterns = {
+                apa: /^[\w\s]+,\s*[\w\s]+\.\s*\(\d{4}\)\.\s*.+$/,
+                mla: /^[\w\s]+,\s*[\w\s]+\.\s*".+"\.\s*.+,\s*\d{4}\.$/,
+                chicago: /^[\w\s]+,\s*[\w\s]+\.\s*\d{4}\.\s*".+"\.\s*.+$/,
+                harvard: /^[\w\s]+,\s*[\w\s]+,\s*\d{4}\.\s*.+\.\s*.+$/,
+                ieee: /^[\w\s]+\.\s*".+",\s*.+,\s*\d{4}\.$/,
+                ama: /^[\w\s]+\.\s*.+\.\s*.+\.\s*\d{4}\.$/,
+                vancouver: /^[\w\s]+\.\s*.+\.\s*.+\s*\d{4}\.$/,
+                turabian: /^[\w\s]+,\s*[\w\s]+\.\s*\d{4}\.\s*.+\.\s*.+$/,
+                oscola: /^[\w\s]+\s*,\s*".+"\s*\(\d{4}\)\s*.+$/,
+                bluebook: /^[\w\s]+,\s*.+,\s*.+\s*\(\d{4}\)\.$/
+            };
+            if (!patterns[style].test(ref)) {
+                alert(`Invalid ${style.toUpperCase()} reference for Snippet ${index + 1}`);
+                return false;
+            }
+            return true;
         }
 
         function updatePlaceholders() {
@@ -209,6 +308,37 @@
                 const refInput = document.getElementById(`ref${i}`);
                 if (refInput) refInput.placeholder = getPlaceholder();
             }
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const snippets = [];
+            const references = [];
+            for (let i = 1; i <= snippetCount; i++) {
+                const snippet = document.getElementById(`snippet${i}`)?.value || '';
+                const ref = document.getElementById(`ref${i}`)?.value || '';
+                if (snippet && ref) {
+                    snippets.push(snippet);
+                    references.push(ref);
+                }
+            }
+            const style = document.getElementById('citationStyle').value;
+            const categorize = document.getElementById('categorize').checked;
+            let combined = snippets.map((s, i) => `${s} (${references[i].split(",")[0]}, ${references[i].split(",")[1]})`).join("\n\n");
+            if (categorize) {
+                combined = categorizeSnippets(snippets, references);
+            }
+            const bibliography = generateBibliography(references, style);
+            document.getElementById('preview-content').innerText = combined + "\n\nBibliography:\n" + bibliography;
+        }
+
+        function categorizeSnippets(snippets, references) {
+            // Placeholder for AI categorization
+            const categories = [
+                { name: "Methodology", snippets: [snippets[0]], refs: [references[0]] },
+                { name: "Findings", snippets: snippets.slice(1), refs: references.slice(1) }
+            ];
+            return categories.map(cat => `${cat.name}:\n${cat.snippets.map((s, i) => `${s} (${cat.refs[i].split(",")[0]}, ${cat.refs[i].split(",")[1]})`).join("\n\n")}`).join("\n\n");
         }
 
         function combineText() {
@@ -218,12 +348,17 @@
                 const snippet = document.getElementById(`snippet${i}`).value;
                 const ref = document.getElementById(`ref${i}`).value;
                 if (snippet && ref) {
+                    if (!validateReference(ref, document.getElementById('citationStyle').value, i - 1)) return;
                     snippets.push(snippet);
                     references.push(ref);
                 }
             }
             const style = document.getElementById('citationStyle').value;
+            const categorize = document.getElementById('categorize').checked;
             let combined = snippets.map((s, i) => `${s} (${references[i].split(",")[0]}, ${references[i].split(",")[1]})`).join("\n\n");
+            if (categorize) {
+                combined = categorizeSnippets(snippets, references);
+            }
             const bibliography = generateBibliography(references, style);
             const outputText = combined + "\n\nBibliography:\n" + bibliography;
             document.getElementById('output-text').innerText = outputText;
@@ -251,6 +386,8 @@
 
         function closeModal() {
             document.getElementById('output-modal').style.display = 'none';
+            document.getElementById('save-online-options').style.display = 'none';
+            document.getElementById('save-locally-options').style.display = 'none';
         }
 
         function copyText() {
@@ -300,6 +437,20 @@
             alert('Dropbox integration requires API setup. Placeholder for now.');
         }
 
+        function saveToOneDrive() {
+            alert('OneDrive integration requires API setup. Placeholder for now.');
+        }
+
+        function toggleSaveOnline() {
+            const options = document.getElementById('save-online-options');
+            options.style.display = options.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function toggleSaveLocally() {
+            const options = document.getElementById('save-locally-options');
+            options.style.display = options.style.display === 'block' ? 'none' : 'block';
+        }
+
         function clearAll() {
             const container = document.getElementById('snippets-container');
             container.innerHTML = `
@@ -308,9 +459,24 @@
                     <textarea id="snippet1" placeholder="Paste your first text snippet here" spellcheck="true"></textarea>
                     <input type="text" id="ref1" placeholder="${getPlaceholder()}">
                 </div>
+                <div class="snippet">
+                    <h3>Text Snippet 2</h3>
+                    <textarea id="snippet2" placeholder="Paste your second text snippet here" spellcheck="true"></textarea>
+                    <input type="text" id="ref2" placeholder="${getPlaceholder()}">
+                </div>
+                <div class="snippet">
+                    <h3>Text Snippet 3</h3>
+                    <textarea id="snippet3" placeholder="Paste your third text snippet here" spellcheck="true"></textarea>
+                    <input type="text" id="ref3" placeholder="${getPlaceholder()}">
+                </div>
             `;
-            snippetCount = 1;
+            snippetCount = 3;
             updateAutoAdd();
+            updatePreview();
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
         }
 
         document.getElementById('output-text').addEventListener('click', function(e) {
@@ -323,7 +489,12 @@
             }
         });
 
+        document.querySelectorAll('textarea, input').forEach(el => {
+            el.addEventListener('input', updatePreview);
+        });
+
         updateAutoAdd();
+        updatePreview();
     </script>
 </body>
 </html>
