@@ -33,7 +33,13 @@ function formatTime(seconds) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-function addSnippet() {
+function calculateInitialSnippets() {
+    const containerWidth = document.querySelector('.main-content').offsetWidth;
+    const snippetWidth = 300 + 20; // 300px + 20px gap
+    return Math.max(1, Math.floor(containerWidth / snippetWidth));
+}
+
+function addSnippet(autoAdded = false) {
     snippetCount++;
     const container = document.getElementById('snippets-container');
     const newSnippet = document.createElement('div');
@@ -62,8 +68,21 @@ function addSnippet() {
         <span id="correct${snippetCount}" class="correct">Correct</span>
     `;
     container.appendChild(newSnippet);
-    newSnippet.scrollIntoView({ behavior: 'smooth' });
+    if (!autoAdded) {
+        newSnippet.scrollIntoView({ behavior: 'smooth' });
+    }
     addDragEvents(newSnippet);
+    const textarea = newSnippet.querySelector('.snippet-content');
+    textarea.addEventListener('input', debounce(() => {
+        updateWordCounts();
+        updateGoalProgress();
+        updateProgress();
+        updatePreview();
+        debouncedAutoSave();
+        if (snippetCount === parseInt(textarea.id.replace('snippet', ''))) {
+            addSnippet(true);
+        }
+    }, 300));
     updatePreview();
     autoSave();
 }
@@ -129,7 +148,7 @@ function formatCitation(index) {
     document.getElementById('format-year').value = '';
     document.getElementById('format-title').value = '';
     document.getElementById('format-journal').value = '';
-    document.getElementById('citation-format-modal').style.display = 'block';
+    document.getElementById('citation-format-modal').style.display = 'flex';
 }
 
 function applyFormattedCitation() {
@@ -160,8 +179,6 @@ function applyFormattedCitation() {
 function closeCitationFormatModal() {
     document.getElementById('citation-format-modal').style.display = 'none';
 }
-
-const debouncedUpdatePreview = debounce(updatePreview, 300);
 
 function updatePreview() {
     const snippets = [];
@@ -262,7 +279,7 @@ function updateWordCounts() {
 }
 
 function updateGoalProgress() {
-    let totalWords = 0;
+    let totalWords = 0\relax
     for (let i = 1; i <= snippetCount; i++) {
         const snippet = document.getElementById(`snippet${i}`)?.value || '';
         totalWords += countWords(snippet);
@@ -271,9 +288,11 @@ function updateGoalProgress() {
     document.getElementById('goal-value').innerText = wordGoal;
     const currentWordsSpan = document.getElementById('current-words');
     const goalValueSpan = document.getElementById('goal-value');
+    const checkmark = document.getElementById('goal-reached');
     if (totalWords >= wordGoal && wordGoal > 0) {
         currentWordsSpan.classList.add('goal-reached');
         goalValueSpan.classList.add('goal-reached');
+        checkmark.style.display = 'block';
         if (!goalReached) {
             showGoalReached();
             goalReached = true;
@@ -281,32 +300,29 @@ function updateGoalProgress() {
     } else {
         currentWordsSpan.classList.remove('goal-reached');
         goalValueSpan.classList.remove('goal-reached');
+        checkmark.style.display = 'none';
         goalReached = false;
     }
 }
 
 function showGoalReached() {
-    const checkmark = document.getElementById('goal-reached');
-    checkmark.style.display = 'block';
     const audio = new Audio('goalReached.wav');
     audio.play().catch(e => {
         console.error('Goal audio failed:', e);
         alert('Goal reached! (Audio unavailable)');
     });
-    setTimeout(() => {
-        checkmark.style.display = 'none';
-    }, 2000);
 }
 
 function updateProgress() {
     const completed = Array.from(document.querySelectorAll('.snippet-content')).filter(s => s.value.trim() !== '').length;
     const total = snippetCount;
-    document.getElementById('progress').innerText = `${Math.round((completed / total) * 100)}%`;
+    document.getElementById('progress').innerText = total > 0 ? `${Math.round((completed / total) * 100)}%` : '0%';
 }
 
 function closeModal() {
     document.getElementById('output-modal').style.display = 'none';
     document.getElementById('save-locally-options').style.display = 'none';
+    document.getElementById('save-online-options').style.display = 'none';
 }
 
 function copyText() {
@@ -351,98 +367,30 @@ function saveText() {
     link.click();
 }
 
-function saveMarkdown() {
-    const text = document.getElementById('output-text').innerText;
-    const markdown = text.replace(/^Bibliography:\n/, '## Bibliography\n');
-    const blob = new Blob([markdown], { type: 'text/markdown' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'text_combiner.md';
-    link.click();
-}
-
-function saveRIS() {
-    const references = [];
-    for (let i = 1; i <= snippetCount; i++) {
-        const ref = document.getElementById(`ref${i}`)?.value || '';
-        if (ref) references.push(ref);
-    }
-    let ris = '';
-    references.forEach(ref => {
-        const parts = ref.split(',').map(p => p.trim());
-        ris += `TY  - JOUR\nAU  - ${parts[0]}\nPY  - ${parts[1]}\nTI  - ${parts[2] || 'Untitled'}\nER  -\n\n`;
-    });
-    const blob = new Blob([ris], { type: 'application/x-research-info-systems' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'text_combiner.ris';
-    link.click();
-}
-
-function saveLatex() {
-    const text = document.getElementById('output-text').innerText;
-    const latex = `\\documentclass{article}\n\\begin{document}\n${text.replace(/\n/g, '\\\\\n')}\n\\end{document}`;
-    const blob = new Blob([latex], { type: 'application/x-tex' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'text_combiner.tex';
-    link.click();
-}
-
-function saveFlashcards() {
-    const snippets = [];
-    const references = [];
-    for (let i = 1; i <= snippetCount; i++) {
-        const snippet = document.getElementById(`snippet${i}`)?.value || '';
-        const ref = document.getElementById(`ref${i}`)?.value || '';
-        if (snippet && ref) {
-            snippets.push(snippet);
-            references.push(ref);
-        }
-    }
-    const text = snippets.map((s, i) => `${s}\t${references[i]}`).join('\n');
-    const blob = new Blob([text], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'text_combiner_flashcards.txt';
-    link.click();
-}
-
-function saveZip() {
-    const zip = new JSZip();
-    const text = document.getElementById('output-text').innerText;
-    zip.file('text_combiner.txt', text);
-    zip.file('text_combiner.md', text.replace(/^Bibliography:\n/, '## Bibliography\n'));
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.text(text, 10, 10);
-    zip.file('text_combiner.pdf', doc.output('blob'));
-    const docx = new docxtemplater(new JSZip(), { paragraphLoop: true });
-    const content = `
-        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-            <w:body>
-                <w:p><w:r><w:t>${text.replace(/\n/g, '</w:t></w:r></w:p><w:p><w:r><w:t>')}</w:t></w:r></w:p>
-            </w:body>
-        </w:document>`;
-    docx.loadZip(new JSZip()).setData(content).render();
-    zip.file('text_combiner.docx', docx.getZip().generate({ type: 'blob' }));
-    let ris = '';
-    for (let i = 1; i <= snippetCount; i++) {
-        const ref = document.getElementById(`ref${i}`)?.value || '';
-        if (ref) {
-            const parts = ref.split(',').map(p => p.trim());
-            ris += `TY  - JOUR\nAU  - ${parts[0]}\nPY  - ${parts[1]}\nTI  - ${parts[2] || 'Untitled'}\nER  -\n\n`;
-        }
-    }
-    zip.file('text_combiner.ris', ris);
-    zip.generateAsync({ type: 'blob' }).then(blob => {
-        saveAs(blob, 'text_combiner.zip');
-    });
-}
-
 function toggleSaveLocally() {
     const options = document.getElementById('save-locally-options');
     options.style.display = options.style.display === 'block' ? 'none' : 'block';
+}
+
+function toggleSaveOnline() {
+    const options = document.getElementById('save-online-options');
+    options.style.display = options.style.display === 'block' ? 'none' : 'block';
+}
+
+function saveToGoogleDrive() {
+    alert('Google Drive integration not implemented. Please implement OAuth and Google Drive API.');
+}
+
+function saveToDropbox() {
+    alert('Dropbox integration not implemented. Please implement OAuth and Dropbox API.');
+}
+
+function saveToSharepoint() {
+    alert('Sharepoint integration not implemented. Please implement Microsoft Graph API.');
+}
+
+function saveToClassrooms() {
+    alert('Classrooms integration not implemented. Please specify platform (e.g., Google Classroom) and implement API.');
 }
 
 function saveCustomStyle() {
@@ -563,20 +511,31 @@ function sortLibrary(key) {
     loadReferenceLibrary();
 }
 
-function savePreferences() {
-    preferences = {
-        citationStyle: document.getElementById('citationStyle').value
-    };
-    localStorage.setItem('preferences', JSON.stringify(preferences));
-    alert('Preferences saved!');
-}
-
 function startTimer() {
     if (!timerInterval) {
         timerMinutes = parseInt(document.getElementById('timer-minutes').value) || 25;
         localStorage.setItem('timerMinutes', timerMinutes);
         timerSeconds = isWorkSession ? timerMinutes * 60 : breakMinutes * 60;
-        timerInterval = setInterval(updateTimer, 1000);
+        const startTime = performance.now();
+        timerInterval = setInterval(() => {
+            const elapsed = (performance.now() - startTime) / 1000;
+            const remaining = timerSeconds - Math.floor(elapsed);
+            if (remaining <= 0) {
+                const audio = new Audio('timerBeep.wav');
+                audio.play().catch(e => {
+                    console.error('Timer beep failed:', e);
+                    alert(isWorkSession ? 'Time for a break!' : 'Back to work!');
+                });
+                isWorkSession = !isWorkSession;
+                timerMinutes = parseInt(document.getElementById('timer-minutes').value) || 25;
+                timerSeconds = isWorkSession ? timerMinutes * 60 : breakMinutes * 60;
+                document.getElementById('motivational-tip').innerText = isWorkSession ? 'Back to work!' : 'Take a break! Stretch or grab a snack.';
+                clearInterval(timerInterval);
+                startTimer();
+            } else {
+                document.getElementById('timer-display').innerText = formatTime(remaining);
+            }
+        }, 100);
     }
 }
 
@@ -585,22 +544,6 @@ function stopTimer() {
     timerInterval = null;
     timerMinutes = parseInt(document.getElementById('timer-minutes').value) || 25;
     timerSeconds = isWorkSession ? timerMinutes * 60 : breakMinutes * 60;
-    document.getElementById('timer-display').innerText = formatTime(timerSeconds);
-}
-
-function updateTimer() {
-    timerSeconds--;
-    if (timerSeconds <= 0) {
-        const audio = new Audio('timerBeep.wav');
-        audio.play().catch(e => {
-            console.error('Timer beep failed:', e);
-            alert(isWorkSession ? 'Time for a break!' : 'Back to work!');
-        });
-        isWorkSession = !isWorkSession;
-        timerMinutes = parseInt(document.getElementById('timer-minutes').value) || 25;
-        timerSeconds = isWorkSession ? timerMinutes * 60 : breakMinutes * 60;
-        document.getElementById('motivational-tip').innerText = isWorkSession ? 'Back to work!' : 'Take a break! Stretch or grab a snack.';
-    }
     document.getElementById('timer-display').innerText = formatTime(timerSeconds);
 }
 
@@ -635,10 +578,10 @@ function loadAutoSave() {
     try {
         const saved = JSON.parse(localStorage.getItem('autoSave'));
         if (saved && saved.snippets && saved.snippetCount) {
-            snippetCount = Math.min(saved.snippetCount, 3);
+            snippetCount = saved.snippetCount;
             const container = document.getElementById('snippets-container');
             container.innerHTML = '';
-            saved.snippets.slice(0, 3).forEach((item, i) => {
+            saved.snippets.forEach((item, i) => {
                 const index = i + 1;
                 const newSnippet = document.createElement('div');
                 newSnippet.className = 'snippet';
@@ -667,15 +610,32 @@ function loadAutoSave() {
                 `;
                 container.appendChild(newSnippet);
                 addDragEvents(newSnippet);
+                const textarea = newSnippet.querySelector('.snippet-content');
+                textarea.addEventListener('input', debounce(() => {
+                    updateWordCounts();
+                    updateGoalProgress();
+                    updateProgress();
+                    updatePreview();
+                    debouncedAutoSave();
+                    if (index === snippetCount) {
+                        addSnippet(true);
+                    }
+                }, 300));
             });
             updatePreview();
         } else {
-            addSnippet();
+            const initialSnippets = calculateInitialSnippets();
+            for (let i = 0; i < initialSnippets; i++) {
+                addSnippet(true);
+            }
         }
     } catch (e) {
         console.error('Load autoSave failed:', e);
         document.getElementById('snippets-container').innerHTML = '';
-        addSnippet();
+        const initialSnippets = calculateInitialSnippets();
+        for (let i = 0; i < initialSnippets; i++) {
+            addSnippet(true);
+        }
     } finally {
         document.getElementById('loading-spinner').style.display = 'none';
     }
@@ -719,8 +679,8 @@ function renumberSnippets() {
     const snippets = document.querySelectorAll('.snippet');
     snippets.forEach((snippet, i) => {
         const index = i + 1;
- ascendant = snippet.querySelector('h3');
-        ascendant.innerText = `Text Snippet ${index}`;
+        const header = snippet.querySelector('h3');
+        header.innerText = `Text Snippet ${index}`;
         const textarea = snippet.querySelector('textarea');
         textarea.id = `snippet${index}`;
         textarea.setAttribute('aria-label', `Text Snippet ${index}`);
@@ -763,7 +723,7 @@ function trapFocus(modal) {
 
 function toggleDarkMode() {
     document.documentElement.classList.toggle('dark-mode');
-    document.querySelectorAll('.snippet, #preview, #output-content, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form, .top-nav, .sidebar').forEach(el => {
+    document.querySelectorAll('.snippet, #preview, #persistent-info, #output-content, #custom-style-modal, #citation-format-content, #reference-library-modal, #request-form, .top-nav, .sidebar').forEach(el => {
         el.style.backgroundColor = document.documentElement.classList.contains('dark-mode') ? '#333' : '#fff';
         el.style.color = document.documentElement.classList.contains('dark-mode') ? '#eee' : '#333';
     });
@@ -772,8 +732,7 @@ function toggleDarkMode() {
 function initialize() {
     document.getElementById('loading-spinner').style.display = 'block';
     try {
-        localStorage.clear(); // Clear storage on first load to prevent corruption
-        addSnippet();
+        localStorage.clear();
         document.getElementById('timer-minutes').value = timerMinutes;
         document.getElementById('word-goal').value = wordGoal || '';
         document.getElementById('word-goal').addEventListener('input', () => {
@@ -789,19 +748,11 @@ function initialize() {
         });
         document.querySelectorAll('textarea, input[type="text"]').forEach(el => {
             el.addEventListener('input', debounce(() => {
-                debouncedUpdatePreview();
+                updatePreview();
                 debouncedAutoSave();
                 if (el.id.startsWith('ref')) {
                     updateValidation(parseInt(el.id.replace('ref', '')));
                 }
-            }, 300));
-        });
-        document.querySelectorAll('.snippet-content').forEach(textarea => {
-            textarea.addEventListener('input', debounce(() => {
-                updateWordCounts();
-                updateGoalProgress();
-                updateProgress();
-                debouncedUpdatePreview();
             }, 300));
         });
         document.getElementById('library-search').addEventListener('input', loadReferenceLibrary);
@@ -819,7 +770,10 @@ function initialize() {
     } catch (e) {
         console.error('Initialization failed:', e);
         document.getElementById('snippets-container').innerHTML = '';
-        addSnippet();
+        const initialSnippets = calculateInitialSnippets();
+        for (let i = 0; i < initialSnippets; i++) {
+            addSnippet(true);
+        }
     } finally {
         document.getElementById('loading-spinner').style.display = 'none';
     }
