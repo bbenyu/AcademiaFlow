@@ -79,6 +79,14 @@ body {
     gap: 10px;
 }
 
+button[onclick="clearAll()"] {
+    background-color: #dc3545; /* Red to indicate destructive action */
+}
+
+button[onclick="clearAll()"]:hover {
+    background-color: #c82333; /* Darker red on hover */
+}
+
 button {
     padding: 8px 12px;
     border: none;
