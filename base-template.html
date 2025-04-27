@@ -157,8 +157,10 @@
     <span class="site-title">Text Combiner - [Page Title]</span>
     <div class="nav-links">
       <a href="dashboard.html" id="dashboard-link">Dashboard</a>
-      <a href="editor.html" id="editor-link">Flow editor</a>
-      <!-- Add more navigation links as needed -->
+      <a href="editor.html" id="editor-link">Flow Editor</a>
+      <a href="reference-library.html" id="reference-link">Reference Library</a>
+      <a href="export.html" id="export-link">Export</a>
+      <!-- Add more navigation links as needed, ensuring text matches destination -->
       <button class="logout-btn" id="logout-btn" style="display:none;">Logout</button>
     </div>
   </div>
@@ -251,6 +253,14 @@
     document.getElementById('editor-link').onclick = function(e) {
       e.preventDefault();
       window.location.href = 'editor.html';
+    };
+    document.getElementById('reference-link').onclick = function(e) {
+      e.preventDefault();
+      window.location.href = 'reference-library.html';
+    };
+    document.getElementById('export-link').onclick = function(e) {
+      e.preventDefault();
+      window.location.href = 'export.html';
     };
 
     // On page load, check session
