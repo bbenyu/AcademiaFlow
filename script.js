@@ -361,6 +361,114 @@ function updateProgress() {
     document.getElementById('progress').innerText = `${Math.round((completed / total) * 100)}%`;
 }
 
+// Storage management
+function checkStorageCapacity() {
+    const used = JSON.stringify(localStorage).length;
+    const limit = 5 * 1024 * 1024; // 5MB
+    if (used > 0.8 * limit) {
+        alert('Storage is nearly full! Please export your project to avoid data loss.');
+    }
+    return used < limit;
+}
+
+function autoSave() {
+    const snippets = [];
+    for (let i = 1; i <= snippetCount; i++) {
+        snippets.push({
+            snippet: document.getElementById(`snippet${i}`)?.value || '',
+            ref: document.getElementById(`ref${i}`)?.value || '',
+            source: document.getElementById(`source${i}`)?.value || ''
+        });
+    }
+    const data = { snippets, snippetCount };
+    const compressed = LZString.compressToUTF16(JSON.stringify(data));
+    if (checkStorageCapacity()) {
+        localStorage.setItem('autoSave', compressed);
+    } else {
+        // Fallback to IndexedDB
+        saveToIndexedDB(data);
+    }
+}
+
+function loadAutoSave() {
+    let saved = localStorage.getItem('autoSave');
+    if (saved) {
+        saved = JSON.parse(LZString.decompressFromUTF16(saved));
+    } else {
+        saved = loadFromIndexedDB();
+    }
+    if (saved) {
+        snippetCount = saved.snippetCount;
+        const container = document.getElementById('snippets-container');
+        container.innerHTML = '';
+        saved.snippets.forEach((item, i) => {
+            const index = i + 1;
+            const newSnippet = document.createElement('div');
+            newSnippet.className = 'snippet';
+            newSnippet.draggable = true;
+            newSnippet.innerHTML = `
+                <h3 class="snippet-header">Text Snippet ${index}</h3>
+                <textarea id="snippet${index}" class="snippet-content" aria-label="Text Snippet ${index}">${item.snippet}</textarea>
+                <div class="snippet-meta">
+                    <span id="word-count${index}">Words: ${countWords(item.snippet)}</span>
+                    <div><label>Category:</label></div>
+                    <select id="source${index}" aria-label="Source type for Snippet ${index}">
+                        <option value="book" ${item.source === 'book' ? 'selected' : ''}>Book</option>
+                        <option value="journal" ${item.source === 'journal' ? 'selected' : ''}>Journal</option>
+                        <option value="website" ${item.source === 'website' ? 'selected' : ''}>Website</option>
+                        <option value="other" ${item.source === 'other' ? 'selected' : ''}>Other</option>
+                    </select>
+                </div>
+                <div class="tooltip">
+                    <input type="text" id="ref${index}" placeholder="${getPlaceholder()}" value="${item.ref}" aria-label="Reference for Snippet ${index}">
+                    <span class="tooltiptext" id="ref-tooltip${index}"></span>
+                    <button onclick="formatCitation(${index})" aria-label="Format citation for Snippet ${index}">Format</button>
+                </div>
+                <span id="error${index}" class="error"></span>
+                <span id="correct${index}" class="correct">Correct</span>
+            `;
+            container.appendChild(newSnippet);
+            addDragEvents(newSnippet);
+        });
+        updateAutoAdd();
+        updatePreview();
+        updateValidation();
+    }
+}
+
+// IndexedDB Implementation
+let db;
+function initIndexedDB() {
+    const request = indexedDB.open('TextCombinerDB', 1);
+    request.onupgradeneeded = event => {
+        db = event.target.result;
+        db.createObjectStore('projects', { keyPath: 'id' });
+    };
+    request.onsuccess = event => {
+        db = event.target.result;
+    };
+    request.onerror = () => console.error('IndexedDB failed to initialize');
+}
+
+function saveToIndexedDB(data) {
+    const transaction = db.transaction(['projects'], 'readwrite');
+    const store = transaction.objectStore('projects');
+    store.put({ id: 'autoSave', data });
+}
+
+function loadFromIndexedDB() {
+    return new Promise(resolve => {
+        const transaction = db.transaction(['projects'], 'readonly');
+        const store = transaction.objectStore('projects');
+        const request = store.get('autoSave');
+        request.onsuccess = () => resolve(request.result?.data || null);
+        request.onerror = () => resolve(null);
+    });
+}
+
+// Initialize IndexedDB on load
+initIndexedDB();
+
 function updateExportPreview(text) {
     document.getElementById('export-preview').innerText = `Export Preview:\n${text.slice(0, 100)}...`;
 }
