@@ -12,12 +12,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
 </head>
 <body>
+    <div id="loading-spinner" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5em;">Loading...</div>
     <nav class="top-nav">
         <h1>Text Combiner</h1>
         <div class="button-container">
             <button onclick="toggleDarkMode()" aria-label="Toggle dark mode">Toggle Dark Mode</button>
             <button onclick="savePreferences()" aria-label="Save preferences">Save Preferences</button>
-            <button onclick="showRequestForm()" aria-label="Request feature">Request Feature</button>
             <button onclick="showReferenceLibrary()" aria-label="Open reference library">Reference Library</button>
             <button onclick="toggleSaveOnline()" aria-label="Save online">Save Online</button>
             <div id="save-online-options" class="save-options">
@@ -36,6 +36,15 @@
                 <button onclick="saveLatex()">LaTeX</button>
                 <button onclick="saveFlashcards()">Flashcards</button>
                 <button onclick="saveZip()">ZIP</button>
+            </div>
+            <div class="timer-container">
+                <label for="work-minutes">Work:</label>
+                <input type="number" id="work-minutes" min="1" value="25" aria-label="Work duration in minutes" style="width: 50px;">
+                <label for="break-minutes">Break:</label>
+                <input type="number" id="break-minutes" min="1" value="5" aria-label="Break duration in minutes" style="width: 50px;">
+                <span id="timer-display">25:00</span>
+                <button onclick="startTimer()" aria-label="Start timer">Start</button>
+                <button onclick="stopTimer()" aria-label="Stop timer">Stop</button>
             </div>
         </div>
     </nav>
@@ -74,16 +83,14 @@
                         <span id="goal-reached" style="display: none;">✔</span>
                     </div>
                 </div>
-                <div class="timer-container">
-                    <span id="timer-display">25:00</span>
-                    <button onclick="startTimer()" aria-label="Start timer">Start</button>
-                    <button onclick="stopTimer()" aria-label="Stop timer">Stop</button>
-                    <span id="motivational-tip"></span>
-                </div>
+                <span id="motivational-tip"></span>
             </div>
             <div id="snippets-container"></div>
             <button onclick="combineText()" aria-label="Combine text">Combine</button>
         </main>
+    </div>
+    <div id="feature-request-button">
+        <button onclick="showRequestForm()" aria-label="Request feature">Request Feature</button>
     </div>
     <div id="output-modal">
         <div id="output-content">
