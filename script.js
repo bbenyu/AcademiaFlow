@@ -871,11 +871,11 @@ async function loadAutoSave() {
         if (!saved) {
             saved = await loadFromIndexedDB();
         }
-        if (saved) {
-            snippetCount = Math.min(saved.snippetCount, 10); // Limit to 10 snippets initially
+        if (saved && saved.snippets && saved.snippetCount) {
+            snippetCount = Math.min(saved.snippetCount, 3); // Limit to 3 snippets to avoid overload
             const container = document.getElementById('snippets-container');
             container.innerHTML = '';
-            saved.snippets.slice(0, 10).forEach((item, i) => {
+            saved.snippets.slice(0, 3).forEach((item, i) => {
                 const index = i + 1;
                 const newSnippet = document.createElement('div');
                 newSnippet.className = 'snippet';
@@ -908,11 +908,15 @@ async function loadAutoSave() {
             updateAutoAdd();
             updatePreview();
             updateValidation();
+        } else {
+            // If no valid saved data, add one snippet
+            addSnippet();
         }
     } catch (e) {
         console.error('Load autoSave failed:', e);
-        alert('Failed to load saved data. Clearing storage to prevent issues.');
-        clearStorage();
+        // Fallback to single snippet
+        document.getElementById('snippets-container').innerHTML = '';
+        addSnippet();
     } finally {
         document.getElementById('loading-spinner').style.display = 'none';
     }
@@ -1013,8 +1017,7 @@ function renumberSnippets() {
         tooltip.id = `ref-tooltip${index}`;
         const formatButton = snippet.querySelector('button');
         formatButton.setAttribute('onclick', `formatCitation(${index})`);
-        formatButton.setAttribute('aria-label', `Format citation Vehicles: 1
-        formatButton.setAttribute('aria-label', `Format citation for Snippet ${index}`);
+        formatButton.setAttribute('aria-label', `Format citation for Snippet ${index}`); // Fixed syntax error
         const error = snippet.querySelector('.error');
         error.id = `error${index}`;
         const correct = snippet.querySelector('.correct');
@@ -1043,9 +1046,8 @@ function trapFocus(modal) {
 function initialize() {
     document.getElementById('loading-spinner').style.display = 'block';
     try {
-        for (let i = 1; i <= snippetCount; i++) {
-            addSnippet();
-        }
+        // Limit initial snippets to 1 to avoid overload
+        addSnippet();
         document.getElementById('work-minutes').value = workMinutes;
         document.getElementById('break-minutes').value = breakMinutes;
         document.getElementById('word-goal').addEventListener('input', () => {
@@ -1099,9 +1101,9 @@ function initialize() {
         isInitialLoad = false;
     } catch (e) {
         console.error('Initialization failed:', e);
-        alert('Failed to initialize. Clearing storage to prevent issues.');
-        clearStorage();
-    } finally {
+        // Fallback to single snippet
+        document.getElementById('snippets-container').innerHTML = '';
+        addSnippet();
         document.getElementById('loading-spinner').style.display = 'none';
     }
 }
