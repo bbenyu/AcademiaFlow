@@ -111,6 +111,11 @@ button:hover {
     border-radius: 5px;
     padding: 15px;
     margin: 10px 0;
+    cursor: move;
+}
+
+.snippet.dragging {
+    opacity: 0.5;
 }
 
 .snippet-header {
@@ -126,14 +131,79 @@ button:hover {
     padding: 10px;
 }
 
+.snippet-meta {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip input {
+    padding: 5px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    width: 200px;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 5px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
+
+.error {
+    color: red;
+    display: none;
+    font-size: 0.8em;
+}
+
+.correct {
+    color: green;
+    display: none;
+    font-size: 0.8em;
+}
+
 #preview {
     padding: 15px;
     background-color: var(--snippet-bg);
     border: 1px solid var(--border-color);
     border-radius: 5px;
+    margin-bottom: 20px;
 }
 
-#output-modal {
+#motivational-tip {
+    font-style: italic;
+    margin: 10px 0;
+}
+
+#goal-progress {
+    margin: 10px 0;
+}
+
+#goal-reached {
+    color: green;
+    font-weight: bold;
+}
+
+#output-modal, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form {
     display: none;
     position: fixed;
     top: 50%;
@@ -147,7 +217,7 @@ button:hover {
     align-items: center;
 }
 
-#output-content {
+#output-content, #custom-style-modal > div, #citation-format-modal > div, #reference-library-modal > div, #request-form > div {
     background-color: var(--snippet-bg);
     color: var(--text-color);
     padding: 20px;
@@ -158,26 +228,47 @@ button:hover {
     overflow-y: auto;
 }
 
-#request-form {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: var(--snippet-bg);
-    color: var(--text-color);
-    padding: 20px;
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    z-index: 1003;
+#output-content button, #save-locally-options {
+    margin: 5px;
 }
 
-#request-form textarea {
+#request-form textarea, #custom-style-modal input, #citation-format-modal input {
     width: 100%;
     padding: 5px;
     margin: 10px 0;
     border: 1px solid var(--border-color);
     border-radius: 5px;
+}
+
+#reference-library-modal table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+#reference-library-modal th, #reference-library-modal td {
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    text-align: left;
+}
+
+#reference-library-modal input {
+    padding: 5px;
+    margin: 5px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+}
+
+#copy-message {
+    color: green;
+    margin-left: 10px;
+}
+
+.dark-mode {
+    --bg-color: #222;
+    --text-color: #eee;
+    --snippet-bg: #333;
+    --border-color: #555;
 }
 
 @media (max-width: 600px) {
