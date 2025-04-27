@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Collaborative Academic Editor (Quill + Yjs)</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Plugin System Support -->
+    <!-- Quill CSS -->
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <!-- Yjs, y-websocket, y-quill -->
+    <script src="https://unpkg.com/yjs"></script>
+    <script src="https://unpkg.com/y-websocket"></script>
+    <script src="https://unpkg.com/y-quill"></script>
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Awareness CSS -->
+    <style>
+        .user-presence-bar { display: flex; gap: 8px; margin-bottom: 8px; }
+        .user-avatar {
+            width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: #fff; font-size: 1.1em; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        #editor-container { height: 350px; }
+        #reference-library { margin-top: 32px; }
+    </style>
+</head>
+<body>
+    <div class="center-viewport">
+        <div class="container" style="width: 100%; max-width: 900px;">
+            <div class="user-presence-bar" id="user-presence-bar"></div>
+            <button id="open-profile-btn" style="margin-bottom:12px;">Profile</button>
+            
+            <!-- Google Drive Integration Buttons -->
+            <div style="margin-bottom: 12px; display: flex; gap: 8px;">
+                <button id="gdrive-auth-btn">Sign in with Google Drive</button>
+                <button id="gdrive-save-btn" disabled>Save to Google Drive</button>
+                <button id="gdrive-load-btn" disabled>Load from Google Drive</button>
+            </div>
+            
+            <div id="editor-container"></div>
+            <div id="reference-library">
+                <h3>Collaborative Reference Library</h3>
+                <input id="ref-input" placeholder="Add reference..." style="width:60%;">
+                <button onclick="addReference()">Add</button>
+                <ul id="ref-list"></ul>
+            </div>
+            
+            <!-- Plugin Widget Container -->
+            <div id="plugin-widgets-bar" style="margin: 16px 0; display: flex; flex-wrap: wrap; gap: 12px;"></div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); z-index:1000; align-items:center; justify-content:center;">
+      <div style="background:#fff; border-radius:10px; padding:32px 28px; min-width:320px; box-shadow:0 4px 24px rgba(0,0,0,0.12); position:relative;">
+        <button id="close-profile-btn" style="position:absolute;top:12px;right:12px;font-size:1.5em;background:none;border:none;cursor:pointer;">&times;</button>
+        <h2>Edit Profile</h2>
+        <form id="profile-form" autocomplete="off">
+          <label>
+            Name:<br>
+            <input type="text" id="profile-name" style="width:100%;margin-bottom:12px;" maxlength="32" required>
+          </label><br>
+          <label>
+            Color:<br>
+            <input type="color" id="profile-color" style="width:48px;height:32px;vertical-align:middle;">
+          </label>
+          <span id="profile-initials" style="display:inline-block;vertical-align:middle;margin-left:8px;font-weight:bold;font-size:1.2em;"></span>
+          <br><br>
+          <!-- Placeholder for Google Drive reauth -->
+          <button type="button" id="reauth-drive-btn" style="margin-top:8px;">Reauthenticate Google Drive</button>
+          <br>
+          <button type="submit" style="margin-top:16px;">Save</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Quill JS -->
+    <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+    <script>
+    // --- Yjs Setup ---
+    const ydoc = new Y.Doc();
+    const provider = new window.Y.WebsocketProvider('wss://demos.yjs.dev', 'academiaflow-demo', ydoc);
+    const ytext = ydoc.getText('editor');
+    const yrefs = ydoc.getArray('references');
+    const awareness = provider.awareness;
+
+    // --- User Profile (color, initials) ---
+    let user = JSON.parse(localStorage.getItem('user_profile') || '{}');
+    if (!user.name) {
+        user.name = prompt("Enter your name:");
+        user.color = '#'+Math.floor(Math.random()*16777215).toString(16);
+        localStorage.setItem('user_profile', JSON.stringify(user));
+    }
+    awareness.setLocalStateField('user', {
+        name: user.name,
+        color: user.color,
+        initials: user.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
+    });
+
+    // --- User Presence Bar ---
+    function renderPresence() {
+        const bar = document.getElementById('user-presence-bar');
+        bar.innerHTML = '';
+        Array.from(awareness.getStates().values()).forEach(state => {
+            if (state.user) {
+                const div = document.createElement('div');
+                div.className = 'user-avatar';
+                div.style.background = state.user.color;
+                div.title = state.user.name;
+                div.textContent = state.user.initials;
+                bar.appendChild(div);
+            }
+        });
+    }
+    awareness.on('change', renderPresence);
+    renderPresence();
+
+    // --- Quill + Yjs Binding ---
+    const quill = new Quill('#editor-container', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                [{ header: [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                ['blockquote', 'code-block'],
+                ['link', 'image'],
+                ['clean']
+            ]
+        }
+    });
+    const binding = new window.Y.QuillBinding(ytext, quill, provider.awareness);
+
+    // --- Collaborative Reference Library ---
+    function renderRefs() {
+        const ul = document.getElementById('ref-list');
+        ul.innerHTML = '';
+        yrefs.toArray().forEach((ref, idx) => {
+            const li = document.createElement('li');
+            li.textContent = ref.text;
+            li.style.background = ref.color || '#eee';
+            li.style.padding = '4px 8px';
+            li.style.borderRadius = '4px';
+            li.onclick = () => { if (confirm("Delete this reference?")) { yrefs.delete(idx, 1); } };
+            ul.appendChild(li);
+        });
+    }
+    yrefs.observe(renderRefs);
+    renderRefs();
+    function addReference() {
+        const input = document.getElementById('ref-input');
+        if (input.value.trim()) {
+            yrefs.push([{text: input.value, color: user.color}]);
+            input.value = '';
+        }
+    }
+
+    // --- Profile Modal Logic ---
+    const openProfileBtn = document.getElementById('open-profile-btn');
+    const profileModal = document.getElementById('profile-modal');
+    const closeProfileBtn = document.getElementById('close-profile-btn');
+    const profileForm = document.getElementById('profile-form');
+    const profileName = document.getElementById('profile-name');
+    const profileColor = document.getElementById('profile-color');
+    const profileInitials = document.getElementById('profile-initials');
+
+    function getInitials(name) {
+      return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    }
+
+    function openProfileModal() {
+      // Load current user profile
+      let user = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      profileName.value = user.name || '';
+      profileColor.value = user.color || '#8888ff';
+      profileInitials.textContent = getInitials(profileName.value);
+      profileInitials.style.background = profileColor.value;
+      profileInitials.style.color = '#fff';
+      profileInitials.style.padding = '4px 12px';
+      profileInitials.style.borderRadius = '16px';
+      profileModal.style.display = 'flex';
+      profileName.focus();
+    }
+    
+    function closeProfileModal() {
+      profileModal.style.display = 'none';
+    }
+    
+    openProfileBtn.onclick = openProfileModal;
+    closeProfileBtn.onclick = closeProfileModal;
+    
+    profileName.oninput = () => {
+      profileInitials.textContent = getInitials(profileName.value);
+    };
+    
+    profileColor.oninput = () => {
+      profileInitials.style.background = profileColor.value;
+    };
+
+    profileForm.onsubmit = function(e) {
+      e.preventDefault();
+      let user = {
+        name: profileName.value.trim(),
+        color: profileColor.value,
+      };
+      localStorage.setItem('user_profile', JSON.stringify(user));
+      
+      // Update Yjs awareness
+      awareness.setLocalStateField('user', {
+        name: user.name,
+        color: user.color,
+        initials: getInitials(user.name)
+      });
+      
+      closeProfileModal();
+      renderPresence();
+    };
+
+    // Close modal with ESC key
+    window.addEventListener('keydown', function(e){
+      if (profileModal.style.display === 'flex' && e.key === "Escape") closeProfileModal();
+    });
+    </script>
+    
+    <!-- Google Drive Integration -->
+    <script>
+    // ---- Google Drive Integration ----
+
+    // CONFIGURATION
+    const GDRIVE_CLIENT_ID = '631813160409-mlh6trgtgomihk578log61cc570cm0ad.apps.googleusercontent.com'; // REPLACE WITH YOUR ACTUAL CLIENT ID
+    const GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file openid email profile';
+
+    // STATE
+    let gapiAccessToken = null;
+    let gapiUser = null;
+
+    // UI Elements
+    const gdriveAuthBtn = document.getElementById('gdrive-auth-btn');
+    const gdriveSaveBtn = document.getElementById('gdrive-save-btn');
+    const gdriveLoadBtn = document.getElementById('gdrive-load-btn');
+    const reauthDriveBtn = document.getElementById('reauth-drive-btn');
+
+    // 1. Google Identity Services: Sign In
+    function handleCredentialResponse(response) {
+      // Exchange the credential for an access token
+      google.accounts.oauth2.tokenClient({
+        client_id: GDRIVE_CLIENT_ID,
+        scope: GDRIVE_SCOPES,
+        callback: (tokenResponse) => {
+          gapiAccessToken = tokenResponse.access_token;
+          gapiUser = parseJwt(response.credential);
+          gdriveSaveBtn.disabled = false;
+          gdriveLoadBtn.disabled = false;
+          gdriveAuthBtn.textContent = "Signed in as " + (gapiUser.name || gapiUser.email);
+          
+          // Store auth state in user profile
+          let user = JSON.parse(localStorage.getItem('user_profile') || '{}');
+          user.googleConnected = true;
+          localStorage.setItem('user_profile', JSON.stringify(user));
+          
+          // Update reauth button visibility
+          reauthDriveBtn.style.display = 'block';
+        }
+      }).requestAccessToken();
+    }
+
+    // Utility: Parse JWT
+    function parseJwt(token) {
+      try {
+        return JSON.parse(atob(token.split('.')[1]));
+      } catch (e) { return {}; }
+    }
+
+    // 2. Attach Google Sign-In
+    gdriveAuthBtn.onclick = function() {
+      google.accounts.id.initialize({
+        client_id: GDRIVE_CLIENT_ID,
+        callback: handleCredentialResponse
+      });
+      google.accounts.id.prompt();
+    };
+
+    // 3. Save to Google Drive
+    gdriveSaveBtn.onclick = async function() {
+      if (!gapiAccessToken) return alert("Please sign in with Google Drive first.");
+      
+      // Show loading state
+      const originalText = gdriveSaveBtn.textContent;
+      gdriveSaveBtn.textContent = "Saving...";
+      gdriveSaveBtn.disabled = true;
+      
+      try {
+        // Prepare data
+        const docData = quill.getContents();
+        const refData = yrefs.toArray();
+        const documentTitle = "AcademiaFlow_Document_" + new Date().toISOString().split('T')[0];
+        
+        const blob = new Blob([JSON.stringify({
+          doc: docData, 
+          refs: refData,
+          metadata: {
+            savedBy: user.name,
+            savedAt: new Date().toISOString(),
+            collaborators: Array.from(awareness.getStates().values())
+              .filter(s => s.user)
+              .map(s => s.user.name)
+          }
+        })], {type: "application/json"});
+        
+        const metadata = {
+          name: documentTitle + ".json",
+          mimeType: "application/json",
+          description: "Document created with AcademiaFlow collaborative editor"
+        };
+        
+        // Use multipart upload
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+        form.append('file', blob);
+
+        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + gapiAccessToken },
+          body: form
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          alert(`Saved to Google Drive as "${metadata.name}"!`);
+        } else {
+          throw new Error(await res.text());
+        }
+      } catch (error) {
+        console.error("Google Drive save error:", error);
+        alert("Failed to save: " + error.message);
+      } finally {
+        gdriveSaveBtn.textContent = originalText;
+        gdriveSaveBtn.disabled = false;
+      }
+    };
+
+    // 4. Load from Google Drive
+    gdriveLoadBtn.onclick = async function() {
+      if (!gapiAccessToken) return alert("Please sign in with Google Drive first.");
+      
+      try {
+        // Show loading state
+        const originalText = gdriveLoadBtn.textContent;
+        gdriveLoadBtn.textContent = "Loading...";
+        gdriveLoadBtn.disabled = true;
+        
+        // List files
+        const listRes = await fetch(
+          'https://www.googleapis.com/drive/v3/files?q=mimeType="application/json" and name contains "AcademiaFlow_Document"&orderBy=modifiedTime desc', 
+          {
+            headers: { 'Authorization': 'Bearer ' + gapiAccessToken }
+          }
+        );
+        
+        const listData = await listRes.json();
+        if (!listData.files || listData.files.length === 0) {
+          alert("No saved documents found in your Google Drive.");
+          return;
+        }
+        
+        // If multiple files, let user choose
+        let fileId;
+        if (listData.files.length === 1) {
+          fileId = listData.files[0].id;
+        } else {
+          const fileNames = listData.files.map((f, i) => `${i+1}. ${f.name}`).join('\n');
+          const choice = prompt(`Choose a file number to load:\n${fileNames}`);
+          const index = parseInt(choice) - 1;
+          if (isNaN(index) || index < 0 || index >= listData.files.length) {
+            alert("Invalid selection.");
+            return;
+          }
+          fileId = listData.files[index].id;
+        }
+        
+        // Get file content
+        const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+          headers: { 'Authorization': 'Bearer ' + gapiAccessToken }
+        });
+        
+        const fileData = await fileRes.json();
+        
+        // Confirm before overwriting current document
+        if (confirm("Loading will replace the current document. Continue?")) {
+          // Apply document content
+          if (fileData.doc) {
+            ytext.delete(0, ytext.length);
+            ytext.insert(0, quill.clipboard.convert(fileData.doc));
+          }
+          
+          // Apply references
+          if (fileData.refs) {
+            yrefs.delete(0, yrefs.length);
+            fileData.refs.forEach(ref => yrefs.push([ref]));
+          }
+          
+          alert("Document loaded successfully!");
+        }
+      } catch (error) {
+        console.error("Google Drive load error:", error);
+        alert("Failed to load: " + error.message);
+      } finally {
+        gdriveLoadBtn.textContent = originalText;
+        gdriveLoadBtn.disabled = false;
+      }
+    };
+
+    // 5. Reauth from Profile Modal
+    reauthDriveBtn.onclick = function() {
+      gapiAccessToken = null;
+      gapiUser = null;
+      gdriveAuthBtn.textContent = "Sign in with Google Drive";
+      gdriveSaveBtn.disabled = true;
+      gdriveLoadBtn.disabled = true;
+      google.accounts.id.prompt();
+    };
+
+    // Check if user was previously connected to Google
+    document.addEventListener('DOMContentLoaded', function() {
+      let user = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      if (user.googleConnected) {
+        reauthDriveBtn.style.display = 'block';
+      }
+    });
+    </script>
+    
+    <!-- Plugin System -->
+    <script>
+    // --- Plugin System Core ---
+
+    // Plugin registry: stores all registered plugins
+    window.pluginRegistry = [];
+
+    // Plugin API: exposes functions for plugins to interact with the app
+    window.PluginAPI = {
+      // Register a plugin (called by plugin file)
+      registerPlugin(pluginObj) {
+        console.log(`Registering plugin: ${pluginObj.name}`);
+        window.pluginRegistry.push(pluginObj);
+        
+        // Call plugin's onRegister if it exists
+        if (pluginObj.onRegister) {
+          pluginObj.onRegister(window.PluginAPI);
+        }
+        
+        // If plugin provides a widget, render it
+        if (pluginObj.widget) {
+          const bar = document.getElementById('plugin-widgets-bar');
+          const widgetElem = pluginObj.widget();
+          if (widgetElem) {
+            widgetElem.dataset.pluginName = pluginObj.name;
+            bar.appendChild(widgetElem);
+          }
+        }
+        
+        // If plugin provides editor extensions, apply them
+        if (pluginObj.extendEditor && quill) {
+          pluginObj.extendEditor(quill);
+        }
+        
+        return pluginObj;
+      },
+      
+      // Core app objects and utilities
+      getQuill() { return window.quill; },
+      getYDoc() { return window.ydoc; },
+      getYText() { return window.ytext; },
+      getYRefs() { return window.yrefs; },
+      getAwareness() { return window.awareness; },
+      getUserProfile() { return JSON.parse(localStorage.getItem('user_profile') || '{}'); },
+      
+      // UI helpers
+      addToolbarButton(label, onClick) {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.onclick = onClick;
+        document.getElementById('plugin-widgets-bar').appendChild(btn);
+        return btn;
+      },
+      
+      // Document helpers
+      insertText(text, index) {
+        const quill = this.getQuill();
+        if (quill) {
+          if (index === undefined) index = quill.getSelection()?.index || quill.getLength();
+          quill.insertText(index, text);
+        }
+      },
+      
+      // Reference library helpers
+      addReference(text, color) {
+        const refs = this.getYRefs();
+        const userProfile = this.getUserProfile();
+        refs.push([{text, color: color || userProfile.color || '#cccccc'}]);
+      }
+    };
+
+    // Plugin loader: loads all JS files in /plugins/ directory
+    window.loadPlugins = async function() {
+      try {
+        // For production, you would fetch this list from the server
+        // or use a directory scanning API
+        const pluginFiles = [
+          '/plugins/word-count.js',
+          '/plugins/citation-helper.js'
+          // Add more plugin JS files here as needed
+        ];
+        
+        console.log(`Loading ${pluginFiles.length} plugins...`);
+        
+        for (const file of pluginFiles) {
+          try {
+            console.log(`Loading plugin from ${file}`);
+            // Dynamic import to load the plugin
+            await import(file).catch(e => {
+              console.warn(`Failed to load plugin from ${file}:`, e);
+            });
+          } catch (err) {
+            console.error(`Error loading plugin ${file}:`, err);
+          }
+        }
+        
+        console.log(`Loaded ${window.pluginRegistry.length} plugins successfully`);
+      } catch (err) {
+        console.error("Error in plugin loader:", err);
+      }
+    };
+
+    // Load plugins after everything else is initialized
+    window.addEventListener('DOMContentLoaded', () => {
+      // Small delay to ensure Quill and other components are fully initialized
+      setTimeout(window.loadPlugins, 500);
+    });
+    </script>
+</body>
+</html>
