@@ -11,7 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-    <div id="dark-mode-toggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">🌓</div>
+    <div id="dark-mode-toggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">🌓 Dark Mode</div>
     <div id="preview">
         <h3>Live Preview</h3>
         <div id="preview-content"></div>
@@ -27,14 +27,16 @@
             <div class="snippet" draggable="true">
                 <h3 class="snippet-header">Text Snippet 1</h3>
                 <textarea id="snippet1" class="snippet-content" aria-label="Text Snippet 1"></textarea>
-                <span id="word-count1">Words: 0</span>
-                <label>Category:</label>
-                <select id="source1" aria-label="Source type for Snippet 1">
-                    <option value="book">Book</option>
-                    <option value="journal">Journal</option>
-                    <option value="website">Website</option>
-                    <option value="other">Other</option>
-                </select>
+                <div class="snippet-meta">
+                    <span id="word-count1">Words: 0</span>
+                    <div><label>Category:</label></div>
+                    <select id="source1" aria-label="Source type for Snippet 1">
+                        <option value="book">Book</option>
+                        <option value="journal">Journal</option>
+                        <option value="website">Website</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
                 <div class="tooltip">
                     <input type="text" id="ref1" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 1">
                     <span class="tooltiptext" id="ref-tooltip1"></span>
@@ -45,14 +47,16 @@
             <div class="snippet" draggable="true">
                 <h3 class="snippet-header">Text Snippet 2</h3>
                 <textarea id="snippet2" class="snippet-content" aria-label="Text Snippet 2"></textarea>
-                <span id="word-count2">Words: 0</span>
-                <label>Category:</label>
-                <select id="source2" aria-label="Source type for Snippet 2">
-                    <option value="book">Book</option>
-                    <option value="journal">Journal</option>
-                    <option value="website">Website</option>
-                    <option value="other">Other</option>
-                </select>
+                <div class="snippet-meta">
+                    <span id="word-count2">Words: 0</span>
+                    <div><label>Category:</label></div>
+                    <select id="source2" aria-label="Source type for Snippet 2">
+                        <option value="book">Book</option>
+                        <option value="journal">Journal</option>
+                        <option value="website">Website</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
                 <div class="tooltip">
                     <input type="text" id="ref2" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 2">
                     <span class="tooltiptext" id="ref-tooltip2"></span>
@@ -63,15 +67,17 @@
             <div class="snippet" draggable="true">
                 <h3 class="snippet-header">Text Snippet 3</h3>
                 <textarea id="snippet3" class="snippet-content" aria-label="Text Snippet 3"></textarea>
-                <span id="word-count3">Words: 0</span>
-                <div class="tooltip">
-                    <label>Category:</label>
+                <div class="snippet-meta">
+                    <span id="word-count3">Words: 0</span>
+                    <div><label>Category:</label></div>
                     <select id="source3" aria-label="Source type for Snippet 3">
                         <option value="book">Book</option>
                         <option value="journal">Journal</option>
                         <option value="website">Website</option>
                         <option value="other">Other</option>
                     </select>
+                </div>
+                <div class="tooltip">
                     <input type="text" id="ref3" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 3">
                     <span class="tooltiptext" id="ref-tooltip3"></span>
                 </div>
@@ -81,11 +87,6 @@
         </div>
         <div class="button-group">
             <h4>Input Controls</h4>
-            <select id="font" aria-label="Select output font">
-                <option value="Arial">Arial</option>
-                <option value="Times New Roman">Times New Roman</option>
-                <option value="Calibri">Calibri</option>
-            </select>
             <select id="citationStyle" aria-label="Select citation style">
                 <option value="apa">APA</option>
                 <option value="mla">MLA</option>
