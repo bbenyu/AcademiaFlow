@@ -15,39 +15,46 @@
 body {
     font-family: Arial, sans-serif;
     margin: 0;
-    padding: 20px;
     background-color: var(--bg-color);
     color: var(--text-color);
 }
 
-header {
+.top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--snippet-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
+    z-index: 1000;
 }
 
-h1 {
-    font-size: 2em;
+.top-nav h1 {
+    font-size: 1.5em;
+    margin: 0;
 }
 
 .button-container {
     position: relative;
     display: flex;
-    justify-content: flex-end;
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
 }
 
 button {
-    padding: 10px 15px;
-    margin: 5px;
+    padding: 8px 12px;
     border: none;
     border-radius: 5px;
     background-color: #007bff;
     color: white;
     cursor: pointer;
+    font-size: 0.9em;
 }
 
 button:hover {
@@ -71,12 +78,39 @@ button[aria-label="Save locally"], button[aria-label="Save online"] {
     z-index: 1004;
 }
 
+.container {
+    display: flex;
+    margin-top: 60px; /* Space for fixed nav */
+    min-height: calc(100vh - 60px);
+}
+
+.sidebar {
+    width: 300px;
+    padding: 20px;
+    background-color: var(--snippet-bg);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+}
+
+.main-content {
+    flex: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
 .config {
-    margin: 20px 0;
+    margin-bottom: 20px;
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
     align-items: center;
+}
+
+.config div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .config label {
@@ -199,7 +233,7 @@ button[aria-label="Save locally"], button[aria-label="Save online"] {
 }
 
 #preview {
-    margin: 20px 0;
+    margin: 0;
     padding: 15px;
     background-color: var(--snippet-bg);
     border: 1px solid var(--border-color);
@@ -276,12 +310,28 @@ button[aria-label="Save locally"], button[aria-label="Save online"] {
 }
 
 @media (max-width: 600px) {
+    .container {
+        flex-direction: column;
+        margin-top: 80px;
+    }
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .main-content {
+        width: 100%;
+        max-width: none;
+    }
+    .top-nav {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .button-container {
+        justify-content: flex-start;
+    }
     #output-content {
         width: 90%;
         max-height: 90vh;
-    }
-    .config {
-        flex-direction: column;
-        align-items: flex-start;
     }
 }
