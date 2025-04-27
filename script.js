@@ -43,14 +43,16 @@ function addSnippet() {
     newSnippet.innerHTML = `
         <h3 class="snippet-header">Text Snippet ${snippetCount}</h3>
         <textarea id="snippet${snippetCount}" class="snippet-content" aria-label="Text Snippet ${snippetCount}"></textarea>
-        <span id="word-count${snippetCount}">Words: 0</span>
-        <label>Category:</label>
-        <select id="source${snippetCount}" aria-label="Source type for Snippet ${snippetCount}">
-            <option value="book">Book</option>
-            <option value="journal">Journal</option>
-            <option value="website">Website</option>
-            <option value="other">Other</option>
-        </select>
+        <div class="snippet-meta">
+            <span id="word-count${snippetCount}">Words: 0</span>
+            <div><label>Category:</label></div>
+            <select id="source${snippetCount}" aria-label="Source type for Snippet ${snippetCount}">
+                <option value="book">Book</option>
+                <option value="journal">Journal</option>
+                <option value="website">Website</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
         <div class="tooltip">
             <input type="text" id="ref${snippetCount}" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet ${snippetCount}">
             <span class="tooltiptext" id="ref-tooltip${snippetCount}"></span>
@@ -68,12 +70,15 @@ function addSnippet() {
 
 function updateAutoAdd() {
     const lastSnippet = document.getElementById(`snippet${snippetCount}`);
-    lastSnippet.removeEventListener('input', addSnippet); // Prevent multiple listeners
-    lastSnippet.addEventListener('input', function() {
-        if (lastSnippet.value.trim() !== '') {
-            addSnippet();
-        }
-    });
+    lastSnippet.removeEventListener('input', handleSnippetInput);
+    lastSnippet.addEventListener('input', handleSnippetInput);
+}
+
+function handleSnippetInput() {
+    const lastSnippet = document.getElementById(`snippet${snippetCount}`);
+    if (lastSnippet.value.trim() !== '') {
+        addSnippet();
+    }
 }
 
 function getPlaceholder() {
@@ -138,7 +143,10 @@ function updateValidation(index) {
 function updatePlaceholders() {
     for (let i = 1; i <= snippetCount; i++) {
         const refInput = document.getElementById(`ref${i}`);
-        if (refInput) refInput.placeholder = getPlaceholder();
+        if (refInput) {
+            refInput.placeholder = getPlaceholder();
+            refInput.value = refInput.value || getPlaceholder().replace('e.g., ', '');
+        }
         const tooltip = document.getElementById(`ref-tooltip${i}`);
         if (tooltip) tooltip.innerText = getPlaceholder();
         validateReference(refInput.value, document.getElementById('citationStyle').value, i - 1);
@@ -197,12 +205,10 @@ function updatePreview() {
         }
     }
     const style = document.getElementById('citationStyle').value;
-    const font = document.getElementById('font').value;
     const combined = snippets.map((s, i) => `${s} (${references[i].split(",")[0]}, ${references[i].split(",")[1]})`).join("\n\n");
     const bibliography = generateBibliography(references, sources, style);
-    const outputText = combined + "\n\nBibliography:\n" + bibliography;
+    const outputText = combined + (bibliography ? "\n\nBibliography:\n" + bibliography : '');
     document.getElementById('preview-content').innerText = outputText;
-    document.getElementById('preview-content').style.fontFamily = font;
     updateWordCounts();
     updateExportPreview(outputText);
     updateProgress();
@@ -261,12 +267,10 @@ function combineText() {
         }
     }
     const style = document.getElementById('citationStyle').value;
-    const font = document.getElementById('font').value;
     const combined = snippets.map((s, i) => `${s} (${references[i].split(",")[0]}, ${references[i].split(",")[1]})`).join("\n\n");
     const bibliography = generateBibliography(references, sources, style);
-    const outputText = combined + "\n\nBibliography:\n" + bibliography;
+    const outputText = combined + (bibliography ? "\n\nBibliography:\n" + bibliography : '');
     document.getElementById('output-text').innerHTML = outputText.replace(/\n/g, '<br>');
-    document.getElementById('output-text').style.fontFamily = font;
     document.getElementById('errors-list').innerText = invalidRefs.length ? `Incorrect references: ${formatRanges(invalidRefs)}` : '';
     document.getElementById('output-modal').style.display = 'flex';
 }
@@ -297,7 +301,7 @@ function updateWordCounts() {
         if (wordCountSpan) wordCountSpan.innerText = `Words: ${countWords(snippet)}`;
     }
     const outputText = document.getElementById('output-text').innerText;
-    const snippetsOnly = outputText.split('\n\nBibliography:\n')[0].replace(/\([\w\s,]+\)/g, '');
+    const snippetsOnly = outputText.split('\n\nBibliography:\n')[0]?.replace(/\([\w\s,]+\)/g, '') || '';
     const totalWords = countWords(outputText);
     const snippetsWords = countWords(snippetsOnly);
     document.getElementById('word-count-output').innerText = `Total Words: ${totalWords} (Excluding Citations: ${snippetsWords})`;
@@ -332,7 +336,6 @@ function copyText() {
 function savePDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    doc.setFont(document.getElementById('font').value);
     doc.text(document.getElementById('output-text').innerText, 10, 10);
     doc.save('research_synthesis.pdf');
     setCookie('lastSave', 'pdf', 30);
@@ -426,7 +429,7 @@ function saveFlashcards() {
 
 function saveZip() {
     const zip = new JSZip();
-    const text = document.getElementById('output-text').innerText;
+    const text = document.getElementWithId('output-text').innerText;
     zip.file('research_synthesis.txt', text);
     zip.file('research_synthesis.md', text.replace(/^Bibliography:\n/, '## Bibliography\n'));
     const { jsPDF } = window.jspdf;
@@ -522,8 +525,7 @@ function submitRequest() {
 
 function savePreferences() {
     preferences = {
-        citationStyle: document.getElementById('citationStyle').value,
-        font: document.getElementById('font').value
+        citationStyle: document.getElementById('citationStyle').value
     };
     localStorage.setItem('preferences', JSON.stringify(preferences));
     alert('Preferences saved!');
@@ -555,14 +557,16 @@ function loadAutoSave() {
             newSnippet.innerHTML = `
                 <h3 class="snippet-header">Text Snippet ${index}</h3>
                 <textarea id="snippet${index}" class="snippet-content" aria-label="Text Snippet ${index}">${item.snippet}</textarea>
-                <span id="word-count${index}">Words: ${countWords(item.snippet)}</span>
-                <label>Category:</label>
-                <select id="source${index}" aria-label="Source type for Snippet ${index}">
-                    <option value="book" ${item.source === 'book' ? 'selected' : ''}>Book</option>
-                    <option value="journal" ${item.source === 'journal' ? 'selected' : ''}>Journal</option>
-                    <option value="website" ${item.source === 'website' ? 'selected' : ''}>Website</option>
-                    <option value="other" ${item.source === 'other' ? 'selected' : ''}>Other</option>
-                </select>
+                <div class="snippet-meta">
+                    <span id="word-count${index}">Words: ${countWords(item.snippet)}</span>
+                    <div><label>Category:</label></div>
+                    <select id="source${index}" aria-label="Source type for Snippet ${index}">
+                        <option value="book" ${item.source === 'book' ? 'selected' : ''}>Book</option>
+                        <option value="journal" ${item.source === 'journal' ? 'selected' : ''}>Journal</option>
+                        <option value="website" ${item.source === 'website' ? 'selected' : ''}>Website</option>
+                        <option value="other" ${item.source === 'other' ? 'selected' : ''}>Other</option>
+                    </select>
+                </div>
                 <div class="tooltip">
                     <input type="text" id="ref${index}" placeholder="${getPlaceholder()}" value="${item.ref}" aria-label="Reference for Snippet ${index}">
                     <span class="tooltiptext" id="ref-tooltip${index}"></span>
@@ -582,8 +586,14 @@ function loadAutoSave() {
 function addDragEvents(snippet) {
     snippet.addEventListener('dragstart', e => {
         e.dataTransfer.setData('text/plain', snippet.querySelector('h3').innerText.split(' ')[2]);
+        snippet.classList.add('dragging');
     });
-    snippet.addEventListener('dragover', e => e.preventDefault());
+    snippet.addEventListener('dragend', () => {
+        snippet.classList.remove('dragging');
+    });
+    snippet.addEventListener('dragover', e => {
+        e.preventDefault();
+    });
     snippet.addEventListener('drop', e => {
         e.preventDefault();
         const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
@@ -619,6 +629,7 @@ function renumberSnippets() {
         snippet.querySelector('.correct').id = `correct${index}`;
     });
     snippetCount = snippets.length;
+    updateAutoAdd();
 }
 
 function clearAll() {
@@ -627,14 +638,16 @@ function clearAll() {
         <div class="snippet" draggable="true">
             <h3 class="snippet-header">Text Snippet 1</h3>
             <textarea id="snippet1" class="snippet-content" aria-label="Text Snippet 1"></textarea>
-            <span id="word-count1">Words: 0</span>
-            <label>Category:</label>
-            <select id="source1" aria-label="Source type for Snippet 1">
-                <option value="book">Book</option>
-                <option value="journal">Journal</option>
-                <option value="website">Website</option>
-                <option value="other">Other</option>
-            </select>
+            <div class="snippet-meta">
+                <span id="word-count1">Words: 0</span>
+                <div><label>Category:</label></div>
+                <select id="source1" aria-label="Source type for Snippet 1">
+                    <option value="book">Book</option>
+                    <option value="journal">Journal</option>
+                    <option value="website">Website</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
             <div class="tooltip">
                 <input type="text" id="ref1" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 1">
                 <span class="tooltiptext" id="ref-tooltip1"></span>
@@ -645,14 +658,16 @@ function clearAll() {
         <div class="snippet" draggable="true">
             <h3 class="snippet-header">Text Snippet 2</h3>
             <textarea id="snippet2" class="snippet-content" aria-label="Text Snippet 2"></textarea>
-            <span id="word-count2">Words: 0</span>
-            <label>Category:</label>
-            <select id="source2" aria-label="Source type for Snippet 2">
-                <option value="book">Book</option>
-                <option value="journal">Journal</option>
-                <option value="website">Website</option>
-                <option value="other">Other</option>
-            </select>
+            <div class="snippet-meta">
+                <span id="word-count2">Words: 0</span>
+                <div><label>Category:</label></div>
+                <select id="source2" aria-label="Source type for Snippet 2">
+                    <option value="book">Book</option>
+                    <option value="journal">Journal</option>
+                    <option value="website">Website</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
             <div class="tooltip">
                 <input type="text" id="ref2" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 2">
                 <span class="tooltiptext" id="ref-tooltip2"></span>
@@ -663,14 +678,16 @@ function clearAll() {
         <div class="snippet" draggable="true">
             <h3 class="snippet-header">Text Snippet 3</h3>
             <textarea id="snippet3" class="snippet-content" aria-label="Text Snippet 3"></textarea>
-            <span id="word-count3">Words: 0</span>
-            <label>Category:</label>
-            <select id="source3" aria-label="Source type for Snippet 3">
-                <option value="book">Book</option>
-                <option value="journal">Journal</option>
-                <option value="website">Website</option>
-                <option value="other">Other</option>
-            </select>
+            <div class="snippet-meta">
+                <span id="word-count3">Words: 0</span>
+                <div><label>Category:</label></div>
+                <select id="source3" aria-label="Source type for Snippet 3">
+                    <option value="book">Book</option>
+                    <option value="journal">Journal</option>
+                    <option value="website">Website</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
             <div class="tooltip">
                 <input type="text" id="ref3" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 3">
                 <span class="tooltiptext" id="ref-tooltip3"></span>
@@ -686,7 +703,11 @@ function clearAll() {
 }
 
 function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
+    document.documentElement.classList.toggle('dark-mode');
+    document.querySelectorAll('.snippet, #preview, #output-content, #custom-style-modal, #request-form').forEach(el => {
+        el.style.backgroundColor = document.documentElement.classList.contains('dark-mode') ? '#444' : '#fff';
+        el.style.color = document.documentElement.classList.contains('dark-mode') ? '#ddd' : '#333';
+    });
 }
 
 document.getElementById('import-citations').addEventListener('change', importCitations);
@@ -694,6 +715,7 @@ document.getElementById('citationStyle').addEventListener('change', () => {
     if (document.getElementById('citationStyle').value === 'custom') {
         document.getElementById('custom-style-modal').style.display = 'block';
     }
+    updatePlaceholders();
 });
 document.querySelectorAll('textarea, input').forEach(el => {
     el.addEventListener('input', () => {
@@ -714,6 +736,5 @@ setInterval(autoSave, 5000);
 const tips = ['Write first, edit later.', 'Clarity is key.', 'Take breaks to stay focused.'];
 document.getElementById('motivational-tip').innerText = tips[Math.floor(Math.random() * tips.length)];
 if (preferences.citationStyle) document.getElementById('citationStyle').value = preferences.citationStyle;
-if (preferences.font) document.getElementById('font').value = preferences.font;
 loadAutoSave();
 updatePlaceholders();
