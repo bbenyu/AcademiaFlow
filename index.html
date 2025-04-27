@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text Combiner for Researchers</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.28.0/docxtemplater.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,13 +16,8 @@
             padding: 20px;
             font-size: 18px;
         }
-        h1 {
-            color: #333;
-        }
-        p {
-            color: #555;
-            margin-bottom: 20px;
-        }
+        h1 { color: #333; }
+        p { color: #555; margin-bottom: 20px; }
         .grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -31,15 +30,22 @@
             padding: 15px;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; }
         }
         textarea {
             width: 100%;
-            height: 100px;
+            height: 80px;
             margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 3px;
             font-size: 16px;
+            transition: height 0.3s;
         }
+        textarea:focus { height: 120px; }
         input {
             width: 100%;
             margin: 5px 0;
@@ -59,8 +65,12 @@
             font-size: 18px;
             transition: background-color 0.3s;
         }
-        button:hover {
-            background-color: #0056b3;
+        button:hover { background-color: #0056b3; }
+        select {
+            padding: 12px;
+            font-size: 18px;
+            margin: 10px;
+            width: 200px;
         }
         #output-modal {
             display: none;
@@ -86,11 +96,12 @@
             white-space: pre-wrap;
             margin-bottom: 20px;
             font-size: 16px;
+            cursor: text;
         }
         #copy-message {
             display: none;
             color: green;
-            margin-top: 10px;
+            margin-right: 10px;
             animation: fadeInOut 2s;
         }
         @keyframes fadeInOut {
@@ -104,25 +115,29 @@
             top: 10px;
             right: 10px;
             cursor: pointer;
-            font-size: 24px;
+            font-size: 30px;
+            padding: 10px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
         }
     </style>
 </head>
 <body>
     <h1>Text Combiner for Researchers</h1>
     <p>
-        This tool helps you combine multiple text snippets and manage citations efficiently. Input your snippets and references, choose a citation style, and generate a combined text with a formatted bibliography. Save time and ensure accuracy in your academic writing.
+        Combine text snippets and manage citations effortlessly. Input your snippets and references, choose a citation style, and generate a polished output with a bibliography.
     </p>
     <div id="snippets-container" class="grid-container">
         <div class="snippet">
             <h3>Text Snippet 1</h3>
-            <textarea id="snippet1" placeholder="Paste your first text snippet here"></textarea>
-            <input type="text" id="ref1" placeholder="Reference (e.g., Smith, 2020, Journal of Research)">
+            <textarea id="snippet1" placeholder="Paste your first text snippet here" spellcheck="true"></textarea>
+            <input type="text" id="ref1" placeholder="e.g., Smith, J. (2020). Title. Journal.">
         </div>
     </div>
-    <button onclick="addSnippet()">Add Snippet</button>
-    <label for="citationStyle">Citation Style:</label>
-    <select id="citationStyle">
+    <select id="citationStyle" onchange="updatePlaceholders()">
         <option value="apa">APA</option>
         <option value="mla">MLA</option>
         <option value="chicago">Chicago</option>
@@ -138,10 +153,18 @@
     <button onclick="clearAll()">Clear All</button>
     <div id="output-modal">
         <div id="output-content">
-            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <span class="close-btn" onclick="closeModal()">×</span>
+            <h2>Your Research Synthesis</h2>
             <div id="output-text"></div>
-            <button onclick="copyText()">Copy</button>
-            <span id="copy-message">Copied!</span>
+            <div class="button-container">
+                <span id="copy-message">Copied!</span>
+                <button onclick="copyText()">Copy to Clipboard</button>
+                <button onclick="savePDF()">Save as PDF</button>
+                <button onclick="saveText()">Save as Text</button>
+                <button onclick="saveDocx()">Save as DOCX</button>
+                <button onclick="saveToGoogleDrive()">Save to Google Drive</button>
+                <button onclick="saveToDropbox()">Save to Dropbox</button>
+            </div>
         </div>
     </div>
     <script>
@@ -154,10 +177,38 @@
             newSnippet.className = 'snippet';
             newSnippet.innerHTML = `
                 <h3>Text Snippet ${snippetCount}</h3>
-                <textarea id="snippet${snippetCount}" placeholder="Paste your text snippet here"></textarea>
-                <input type="text" id="ref${snippetCount}" placeholder="Reference (e.g., Smith, 2020, Journal of Research)">
+                <textarea id="snippet${snippetCount}" placeholder="Paste your text snippet here" spellcheck="true"></textarea>
+                <input type="text" id="ref${snippetCount}" placeholder="${getPlaceholder()}">
             `;
             container.appendChild(newSnippet);
+            newSnippet.scrollIntoView({ behavior: 'smooth' });
+            updateAutoAdd();
+        }
+
+        function updateAutoAdd() {
+            const lastSnippet = document.getElementById(`snippet${snippetCount}`);
+            lastSnippet.addEventListener('input', function() {
+                if (lastSnippet.value.trim() !== '') {
+                    addSnippet();
+                }
+            }, { once: true });
+        }
+
+        function getPlaceholder() {
+            const style = document.getElementById('citationStyle').value;
+            switch (style) {
+                case 'apa': return 'e.g., Smith, J. (2020). Title. Journal.';
+                case 'mla': return 'e.g., Smith, John. "Title." Journal, 2020.';
+                case 'chicago': return 'e.g., Smith, John. 2020. Title. Journal.';
+                default: return 'Reference';
+            }
+        }
+
+        function updatePlaceholders() {
+            for (let i = 1; i <= snippetCount; i++) {
+                const refInput = document.getElementById(`ref${i}`);
+                if (refInput) refInput.placeholder = getPlaceholder();
+            }
         }
 
         function combineText() {
@@ -211,25 +262,68 @@
             });
         }
 
+        function savePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text(document.getElementById('output-text').innerText, 10, 10);
+            doc.save('research_synthesis.pdf');
+        }
+
+        function saveText() {
+            const text = document.getElementById('output-text').innerText;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'research_synthesis.txt';
+            link.click();
+        }
+
+        function saveDocx() {
+            const text = document.getElementById('output-text').innerText;
+            const doc = new docxtemplater(new JSZip(), { paragraphLoop: true });
+            const content = `
+                <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                    <w:body>
+                        <w:p><w:r><w:t>${text.replace(/\n/g, '</w:t></w:r></w:p><w:p><w:r><w:t>')}</w:t></w:r></w:p>
+                    </w:body>
+                </w:document>`;
+            doc.loadZip(new JSZip()).setData(content).render();
+            const blob = doc.getZip().generate({ type: 'blob' });
+            saveAs(blob, 'research_synthesis.docx');
+        }
+
+        function saveToGoogleDrive() {
+            alert('Google Drive integration requires API setup. Placeholder for now.');
+        }
+
+        function saveToDropbox() {
+            alert('Dropbox integration requires API setup. Placeholder for now.');
+        }
+
         function clearAll() {
             const container = document.getElementById('snippets-container');
             container.innerHTML = `
                 <div class="snippet">
                     <h3>Text Snippet 1</h3>
-                    <textarea id="snippet1" placeholder="Paste your first text snippet here"></textarea>
-                    <input type="text" id="ref1" placeholder="Reference (e.g., Smith, 2020, Journal of Research)">
+                    <textarea id="snippet1" placeholder="Paste your first text snippet here" spellcheck="true"></textarea>
+                    <input type="text" id="ref1" placeholder="${getPlaceholder()}">
                 </div>
             `;
             snippetCount = 1;
+            updateAutoAdd();
         }
 
-        document.getElementById('output-text').addEventListener('click', function() {
-            const range = document.createRange();
-            range.selectNodeContents(this);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
+        document.getElementById('output-text').addEventListener('click', function(e) {
+            if (e.detail === 1 && !window.getSelection().toString()) {
+                const range = document.createRange();
+                range.selectNodeContents(this);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
         });
+
+        updateAutoAdd();
     </script>
 </body>
 </html>
