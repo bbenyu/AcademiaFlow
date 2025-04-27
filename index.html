@@ -75,6 +75,8 @@
             border-radius: 3px;
             font-size: 16px;
             transition: height 0.3s;
+            background-color: var(--snippet-bg);
+            color: var(--text-color);
         }
         textarea:focus { height: 120px; }
         input {
@@ -84,9 +86,16 @@
             border: 1px solid var(--border-color);
             border-radius: 3px;
             font-size: 16px;
+            background-color: var(--snippet-bg);
+            color: var(--text-color);
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+            display: none;
         }
         button {
-            padding: 12px 24px;
+            padding: 10px 20px;
             margin: 10px;
             background-color: #007bff;
             color: white;
@@ -102,6 +111,8 @@
             font-size: 18px;
             margin: 10px;
             width: 200px;
+            background-color: var(--snippet-bg);
+            color: var(--text-color);
         }
         #output-modal {
             display: none;
@@ -121,7 +132,7 @@
             padding: 20px;
             border-radius: 5px;
             width: 80%;
-            max-width: 600px;
+            max-width: 700px;
             text-align: left;
             position: relative;
         }
@@ -155,6 +166,7 @@
             display: flex;
             justify-content: flex-end;
             align-items: center;
+            flex-wrap: nowrap;
         }
         .save-options {
             display: none;
@@ -184,22 +196,28 @@
         <div id="snippets-container" class="grid-container">
             <div class="snippet">
                 <h3>Text Snippet 1</h3>
-                <textarea id="snippet1" placeholder="Paste your first text snippet here" spellcheck="true"></textarea>
-                <input type="text" id="ref1" placeholder="e.g., Smith, J. (2020). Title. Journal.">
+                <textarea id="snippet1" placeholder="Paste your first text snippet here" spellcheck="true" aria-label="Text Snippet 1"></textarea>
+                <span id="word-count1">Words: 0</span>
+                <input type="text" id="ref1" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 1">
+                <span id="error1" class="error"></span>
             </div>
             <div class="snippet">
                 <h3>Text Snippet 2</h3>
-                <textarea id="snippet2" placeholder="Paste your second text snippet here" spellcheck="true"></textarea>
-                <input type="text" id="ref2" placeholder="e.g., Smith, J. (2020). Title. Journal.">
+                <textarea id="snippet2" placeholder="Paste your second text snippet here" spellcheck="true" aria-label="Text Snippet 2"></textarea>
+                <span id="word-count2">Words: 0</span>
+                <input type="text" id="ref2" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 2">
+                <span id="error2" class="error"></span>
             </div>
             <div class="snippet">
                 <h3>Text Snippet 3</h3>
-                <textarea id="snippet3" placeholder="Paste your third text snippet here" spellcheck="true"></textarea>
-                <input type="text" id="ref3" placeholder="e.g., Smith, J. (2020). Title. Journal.">
+                <textarea id="snippet3" placeholder="Paste your third text snippet here" spellcheck="true" aria-label="Text Snippet 3"></textarea>
+                <span id="word-count3">Words: 0</span>
+                <input type="text" id="ref3" placeholder="e.g., Smith, J. (2020). Title. Journal." aria-label="Reference for Snippet 3">
+                <span id="error3" class="error"></span>
             </div>
         </div>
-        <label><input type="checkbox" id="categorize"> Categorize Snippets by Theme</label>
-        <select id="citationStyle" onchange="updatePlaceholders()">
+        <label><input type="checkbox" id="categorize" aria-label="Categorize snippets by theme"> Categorize Snippets by Theme</label>
+        <select id="citationStyle" onchange="updatePlaceholders()" aria-label="Select citation style">
             <option value="apa">APA</option>
             <option value="mla">MLA</option>
             <option value="chicago">Chicago</option>
@@ -211,28 +229,33 @@
             <option value="oscola">OSCOLA</option>
             <option value="bluebook">Bluebook</option>
         </select>
-        <button onclick="combineText()">Combine & Generate Bibliography</button>
-        <button onclick="clearAll()">Clear All</button>
-        <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
-        <div id="output-modal">
+        <button onclick="combineText()" aria-label="Combine text and generate bibliography">Combine & Generate Bibliography</button>
+        <button onclick="clearAll()" aria-label="Clear all snippets">Clear All</button>
+        <button onclick="undo()" aria-label="Undo last action">Undo</button>
+        <button onclick="redo()" aria-label="Redo last action">Redo</button>
+        <button onclick="toggleDarkMode()" aria-label="Toggle dark mode">Toggle Dark Mode</button>
+        <div id="output-modal" role="dialog" aria-label="Result dialog">
             <div id="output-content">
-                <span class="close-btn" onclick="closeModal()">×</span>
+                <span class="close-btn" onclick="closeModal()" aria-label="Close dialog">×</span>
                 <h2>Your Research Synthesis</h2>
-                <div id="output-text"></div>
+                <div id="output-text" aria-label="Combined text and bibliography"></div>
+                <div id="word-count-output">Total Words: 0 (Excluding Citations: 0)</div>
                 <div class="button-container">
                     <span id="copy-message">Copied!</span>
-                    <button onclick="copyText()">Copy to Clipboard</button>
-                    <button onclick="toggleSaveOnline()">Save Online</button>
+                    <button onclick="copyText()" aria-label="Copy to clipboard">Copy to Clipboard</button>
+                    <button onclick="toggleSaveOnline()" aria-label="Save online">Save Online</button>
                     <div id="save-online-options" class="save-options">
                         <button onclick="saveToGoogleDrive()">Google Drive</button>
                         <button onclick="saveToDropbox()">Dropbox</button>
                         <button onclick="saveToOneDrive()">OneDrive</button>
                     </div>
-                    <button onclick="toggleSaveLocally()">Save Locally</button>
+                    <button onclick="toggleSaveLocally()" aria-label="Save locally">Save Locally</button>
                     <div id="save-locally-options" class="save-options">
                         <button onclick="savePDF()">PDF</button>
                         <button onclick="saveDocx()">DOCX</button>
                         <button onclick="saveText()">Text</button>
+                        <button onclick="saveMarkdown()">Markdown</button>
+                        <button onclick="saveRIS()">RIS</button>
                     </div>
                 </div>
             </div>
@@ -240,6 +263,62 @@
     </div>
     <script>
         let snippetCount = 3;
+        let history = [];
+        let historyIndex = -1;
+
+        function saveState() {
+            const snippets = [];
+            for (let i = 1; i <= snippetCount; i++) {
+                snippets.push({
+                    snippet: document.getElementById(`snippet${i}`)?.value || '',
+                    ref: document.getElementById(`ref${i}`)?.value || ''
+                });
+            }
+            history = history.slice(0, historyIndex + 1);
+            history.push({ snippets, snippetCount });
+            historyIndex++;
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                restoreState();
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                restoreState();
+            }
+        }
+
+        function restoreState() {
+            const state = history[historyIndex];
+            snippetCount = state.snippetCount;
+            const container = document.getElementById('snippets-container');
+            container.innerHTML = '';
+            state.snippets.forEach((item, i) => {
+                const index = i + 1;
+                const newSnippet = document.createElement('div');
+                newSnippet.className = 'snippet';
+                newSnippet.innerHTML = `
+                    <h3>Text Snippet ${index}</h3>
+                    <textarea id="snippet${index}" placeholder="Paste your text snippet here" spellcheck="true" aria-label="Text Snippet ${index}">${item.snippet}</textarea>
+                    <span id="word-count${index}">Words: ${countWords(item.snippet)}</span>
+                    <input type="text" id="ref${index}" placeholder="${getPlaceholder()}" value="${item.ref}" aria-label="Reference for Snippet ${index}">
+                    <span id="error${index}" class="error"></span>
+                `;
+                container.appendChild(newSnippet);
+            });
+            updateAutoAdd();
+            updatePreview();
+            updateValidation();
+        }
+
+        function countWords(text) {
+            return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+        }
 
         function addSnippet() {
             snippetCount++;
@@ -248,12 +327,15 @@
             newSnippet.className = 'snippet';
             newSnippet.innerHTML = `
                 <h3>Text Snippet ${snippetCount}</h3>
-                <textarea id="snippet${snippetCount}" placeholder="Paste your text snippet here" spellcheck="true"></textarea>
-                <input type="text" id="ref${snippetCount}" placeholder="${getPlaceholder()}">
+                <textarea id="snippet${snippetCount}" placeholder="Paste your text snippet here" spellcheck="true" aria-label="Text Snippet ${snippetCount}"></textarea>
+                <span id="word-count${snippetCount}">Words: 0</span>
+                <input type="text" id="ref${snippetCount}" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet ${snippetCount}">
+                <span id="error${snippetCount}" class="error"></span>
             `;
             container.appendChild(newSnippet);
             newSnippet.scrollIntoView({ behavior: 'smooth' });
             updateAutoAdd();
+            saveState();
             updatePreview();
         }
 
@@ -296,17 +378,29 @@
                 oscola: /^[\w\s]+\s*,\s*".+"\s*\(\d{4}\)\s*.+$/,
                 bluebook: /^[\w\s]+,\s*.+,\s*.+\s*\(\d{4}\)\.$/
             };
-            if (!patterns[style].test(ref)) {
-                alert(`Invalid ${style.toUpperCase()} reference for Snippet ${index + 1}`);
+            const errorSpan = document.getElementById(`error${index + 1}`);
+            if (!ref || patterns[style].test(ref)) {
+                errorSpan.style.display = 'none';
+                return true;
+            } else {
+                errorSpan.innerText = `Incorrect citation for ${style.toUpperCase()} format.`;
+                errorSpan.style.display = 'block';
                 return false;
             }
-            return true;
+        }
+
+        function updateValidation() {
+            for (let i = 1; i <= snippetCount; i++) {
+                const ref = document.getElementById(`ref${i}`).value;
+                validateReference(ref, document.getElementById('citationStyle').value, i - 1);
+            }
         }
 
         function updatePlaceholders() {
             for (let i = 1; i <= snippetCount; i++) {
                 const refInput = document.getElementById(`ref${i}`);
                 if (refInput) refInput.placeholder = getPlaceholder();
+                validateReference(refInput.value, document.getElementById('citationStyle').value, i - 1);
             }
             updatePreview();
         }
@@ -329,7 +423,9 @@
                 combined = categorizeSnippets(snippets, references);
             }
             const bibliography = generateBibliography(references, style);
-            document.getElementById('preview-content').innerText = combined + "\n\nBibliography:\n" + bibliography;
+            const outputText = combined + "\n\nBibliography:\n" + bibliography;
+            document.getElementById('preview-content').innerText = outputText;
+            updateWordCounts();
         }
 
         function categorizeSnippets(snippets, references) {
@@ -363,6 +459,7 @@
             const outputText = combined + "\n\nBibliography:\n" + bibliography;
             document.getElementById('output-text').innerText = outputText;
             document.getElementById('output-modal').style.display = 'flex';
+            updateWordCounts();
         }
 
         function generateBibliography(references, style) {
@@ -382,6 +479,19 @@
                 }
             });
             return bib;
+        }
+
+        function updateWordCounts() {
+            for (let i = 1; i <= snippetCount; i++) {
+                const snippet = document.getElementById(`snippet${i}`)?.value || '';
+                const wordCountSpan = document.getElementById(`word-count${i}`);
+                if (wordCountSpan) wordCountSpan.innerText = `Words: ${countWords(snippet)}`;
+            }
+            const outputText = document.getElementById('output-text').innerText;
+            const snippetsOnly = outputText.split('\n\nBibliography:\n')[0].replace(/\([\w\s,]+\)/g, '');
+            const totalWords = countWords(outputText);
+            const snippetsWords = countWords(snippetsOnly);
+            document.getElementById('word-count-output').innerText = `Total Words: ${totalWords} (Excluding Citations: ${snippetsWords})`;
         }
 
         function closeModal() {
@@ -429,6 +539,34 @@
             saveAs(blob, 'research_synthesis.docx');
         }
 
+        function saveMarkdown() {
+            const text = document.getElementById('output-text').innerText;
+            const markdown = text.replace(/^Bibliography:\n/, '## Bibliography\n');
+            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'research_synthesis.md';
+            link.click();
+        }
+
+        function saveRIS() {
+            const references = [];
+            for (let i = 1; i <= snippetCount; i++) {
+                const ref = document.getElementById(`ref${i}`).value;
+                if (ref) references.push(ref);
+            }
+            let ris = '';
+            references.forEach(ref => {
+                const parts = ref.split(",").map(p => p.trim());
+                ris += `TY  - JOUR\nAU  - ${parts[0]}\nPY  - ${parts[1]}\nTI  - ${parts[2] || "Untitled"}\nER  -\n\n`;
+            });
+            const blob = new Blob([ris], { type: 'application/x-research-info-systems' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'research_synthesis.ris';
+            link.click();
+        }
+
         function saveToGoogleDrive() {
             alert('Google Drive integration requires API setup. Placeholder for now.');
         }
@@ -443,6 +581,7 @@
 
         function toggleSaveOnline() {
             const options = document.getElementById('save-online-options');
+            options.stylelift
             options.style.display = options.style.display === 'block' ? 'none' : 'block';
         }
 
@@ -456,22 +595,29 @@
             container.innerHTML = `
                 <div class="snippet">
                     <h3>Text Snippet 1</h3>
-                    <textarea id="snippet1" placeholder="Paste your first text snippet here" spellcheck="true"></textarea>
-                    <input type="text" id="ref1" placeholder="${getPlaceholder()}">
+                    <textarea id="snippet1" placeholder="Paste your first text snippet here" spellcheck="true" aria-label="Text Snippet 1"></textarea>
+                    <span id="word-count1">Words: 0</span>
+                    <input type="text" id="ref1" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 1">
+                    <span id="error1" class="error"></span>
                 </div>
                 <div class="snippet">
                     <h3>Text Snippet 2</h3>
-                    <textarea id="snippet2" placeholder="Paste your second text snippet here" spellcheck="true"></textarea>
-                    <input type="text" id="ref2" placeholder="${getPlaceholder()}">
+                    <textarea id="snippet2" placeholder="Paste your second text snippet here" spellcheck="true" aria-label="Text Snippet 2"></textarea>
+                    <span id="word-count2">Words: 0</span>
+                    <input type="text" id="ref2" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 2">
+                    <span id="error2" class="error"></span>
                 </div>
                 <div class="snippet">
                     <h3>Text Snippet 3</h3>
-                    <textarea id="snippet3" placeholder="Paste your third text snippet here" spellcheck="true"></textarea>
-                    <input type="text" id="ref3" placeholder="${getPlaceholder()}">
+                    <textarea id="snippet3" placeholder="Paste your third text snippet here" spellcheck="true" aria-label="Text Snippet 3"></textarea>
+                    <span id="word-count3">Words: 0</span>
+                    <input type="text" id="ref3" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 3">
+                    <span id="error3" class="error"></span>
                 </div>
             `;
             snippetCount = 3;
             updateAutoAdd();
+            saveState();
             updatePreview();
         }
 
@@ -489,11 +635,27 @@
             }
         });
 
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            }
+            if (e.ctrlKey && e.key === 'y') {
+                e.preventDefault();
+                redo();
+            }
+        });
+
         document.querySelectorAll('textarea, input').forEach(el => {
-            el.addEventListener('input', updatePreview);
+            el.addEventListener('input', () => {
+                saveState();
+                updatePreview();
+                updateValidation();
+            });
         });
 
         updateAutoAdd();
+        saveState();
         updatePreview();
     </script>
 </body>
