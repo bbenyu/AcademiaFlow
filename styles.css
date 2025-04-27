@@ -11,7 +11,38 @@
     min-height: 100px; /* Ensure container is visible even if empty */
 }
 .snippet {
-    min-height: 200px; /* Ensure snippets are visible */
+    background-color: var(--snippet-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 15px;
+    margin: 0;
+    min-height: 200px;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* In styles.css, update #snippets-container and .snippet-content */
+#snippets-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    align-items: start; /* Prevent stretching to match tallest item */
+}
+
+.snippet-content {
+    width: 100%;
+    min-height: 100px;
+    resize: vertical;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 10px;
+    background-color: var(--input-bg);
+    color ​​color: var(--input-text);
+    box-sizing: border-box; /* Include padding and border in width */
 }
 
 body {
@@ -70,6 +101,7 @@ button:hover {
 }
 
 .timer-container input {
+    width: 60px;
     padding: 5px;
     border: 1px solid var(--border-color);
     border-radius: 5px;
@@ -131,11 +163,19 @@ button:hover {
     font-weight: bold;
 }
 
+
 #preview {
     padding: 15px;
     background-color: var(--snippet-bg);
     border: 1px solid var(--border-color);
     border-radius: 5px;
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
+}
+
+#preview-content {
+    word-wrap: break-word; /* Break long words */
+    white-space: pre-wrap; /* Preserve newlines and wrap text */
+    max-width: 100%; /* Ensure it doesn't exceed container width */
 }
 
 .main-content {
@@ -160,6 +200,17 @@ button:hover {
 
 .snippet.dragging {
     opacity: 0.5;
+    border: 2px dashed #007bff;
+}
+
+.snippet.drag-over {
+    border: 2px solid #007bff;
+    transform: scale(1.02);
+    transition: transform 0.2s ease;
+}
+
+.snippet {
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .snippet-header {
@@ -193,7 +244,8 @@ button:hover {
     padding: 5px;
     border: 1px solid var(--border-color);
     border-radius: 5px;
-    width: 200px;
+    width: 180px;
+    max-width: 100%;
     background-color: var(--input-bg);
     color: var(--input-text);
 }
@@ -257,7 +309,8 @@ button:hover {
     align-items: center;
 }
 
-#output-content, #custom-style-modal > div, #reference-library-modal > div, #request-form > div {
+
+#output-content {
     background-color: var(--snippet-bg);
     color: var(--text-color);
     padding: 20px;
@@ -265,6 +318,32 @@ button:hover {
     max-width: 700px;
     width: 80%;
     max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+#output-content h3 {
+    position: sticky;
+    top: 0;
+    background-color: var(--snippet-bg);
+    padding: 10px 0;
+    margin: 0;
+    z-index: 1;
+}
+
+
+
+
+#custom-style-modal > div, #reference-library-modal > div, #request-form > div {
+    background-color: var(--snippet-bg);
+    color: var(--text-color);
+    padding: 20px;
+    border-radius: 5px;
+    max-width: 400px;
+    width: 90%;
+    max-height: 50vh;
     overflow-y: auto;
     position: relative;
 }
@@ -280,6 +359,30 @@ button:hover {
     overflow-y: auto;
 }
 
+#citationStyle {
+    padding: 8px;
+    font-size: 1em; /* Larger font size for readability */
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    width: 150px; /* Fixed width for consistency */
+}
+
+
+#custom-style-modal .close-modal {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    color: var(--text-color);
+    font-size: 1.2em;
+    padding: 5px;
+    border: none;
+    cursor: pointer;
+}
+
+
 .close-modal {
     position: absolute;
     top: 10px;
@@ -288,10 +391,25 @@ button:hover {
     color: var(--text-color);
     font-size: 1.2em;
     padding: 5px;
+    border: none;
+    cursor: pointer;
 }
 
 #output-content button, #save-locally-options, #save-online-options {
+    display: none;
+    position: absolute;
+    background-color: var(--snippet-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 1003;
+    flex-direction: column;
+    padding: 5px;
     margin: 5px;
+   -elleckquote: none;
+    width: 100%;
+    text-align: left;
+
 }
 
 #request-form textarea, #custom-style-modal input, #citation-format-modal input {
@@ -304,10 +422,32 @@ button:hover {
     color: var(--input-text);
 }
 
-#reference-library-modal table {
+
+
+#reference-library-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
     width: 100%;
-    border-collapse: collapse;
-    margin: 10px 0;
+    height: 100%;
+    z-index: 1002;
+    justify-content: center;
+    align-items: center;
+}
+
+#reference-library-modal > div {
+    background-color: var(--snippet-bg);
+    color: var(--text-color);
+    padding: 20px;
+    border-radius: 5px;
+    max-width: 600px; /* Smaller width */
+    width: 90%;
+    max-height: 70vh;
+    overflow-y: auto;
+    position: relative;
 }
 
 #reference-library-modal th, #reference-library-modal td {
