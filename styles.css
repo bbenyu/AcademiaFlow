@@ -7,6 +7,13 @@
     --input-text: #333;
 }
 
+#snippets-container {
+    min-height: 100px; /* Ensure container is visible even if empty */
+}
+.snippet {
+    min-height: 200px; /* Ensure snippets are visible */
+}
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
