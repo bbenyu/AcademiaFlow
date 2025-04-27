@@ -3,6 +3,11 @@ let preferences = JSON.parse(localStorage.getItem('preferences')) || {};
 let lastSave = getCookie('lastSave') || 'pdf';
 let customStyle = localStorage.getItem('customStyle') || '{author}, {year}, {title}';
 let validationTimeouts = {};
+let wordGoal = parseInt(localStorage.getItem('wordGoal')) || 0;
+let timerInterval = null;
+let timerSeconds = 25 * 60;
+let isWorkSession = true;
+let currentCitationIndex = null;
 
 function setCookie(name, value, days) {
     let expires = "";
@@ -56,6 +61,7 @@ function addSnippet() {
         <div class="tooltip">
             <input type="text" id="ref${snippetCount}" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet ${snippetCount}">
             <span class="tooltiptext" id="ref-tooltip${snippetCount}"></span>
+            <button onclick="formatCitation(${snippetCount})" aria-label="Format citation for Snippet ${snippetCount}">Format</button>
         </div>
         <span id="error${snippetCount}" class="error"></span>
         <span id="correct${snippetCount}" class="correct">Correct</span>
@@ -145,49 +151,57 @@ function updatePlaceholders() {
         const refInput = document.getElementById(`ref${i}`);
         if (refInput) {
             refInput.placeholder = getPlaceholder();
-            refInput.value = refInput.value || getPlaceholder().replace('e.g., ', '');
         }
         const tooltip = document.getElementById(`ref-tooltip${i}`);
         if (tooltip) tooltip.innerText = getPlaceholder();
-        validateReference(refInput.value, document.getElementById('citationStyle').value, i - 1);
+        validateReference(refInput?.value || '', document.getElementById('citationStyle').value, i - 1);
     }
     updatePreview();
 }
 
-function importCitations(event) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const text = e.target.result;
-        if (file.name.endsWith('.bib')) {
-            const entries = text.split('@').filter(e => e.includes('author')).slice(0, snippetCount);
-            entries.forEach((entry, i) => {
-                const index = i + 1;
-                const author = entry.match(/author\s*=\s*{([^}]+)}/)?.[1] || '';
-                const year = entry.match(/year\s*=\s*{(\d{4})}/)?.[1] || '';
-                const title = entry.match(/title\s*=\s*{([^}]+)}/)?.[1] || '';
-                const refInput = document.getElementById(`ref${index}`);
-                if (refInput) refInput.value = `${author}, ${year}, ${title}`;
-                validateReference(refInput.value, document.getElementById('citationStyle').value, i);
-            });
-        } else if (file.name.endsWith('.ris')) {
-            const entries = text.split('ER  -').filter(e => e.includes('AU  -')).slice(0, snippetCount);
-            entries.forEach((entry, i) => {
-                const index = i + 1;
-                const author = entry.match(/AU  -\s*([^\n]+)/)?.[1] || '';
-                const year = entry.match(/PY  -\s*(\d{4})/)?.[1] || '';
-                const title = entry.match(/TI  -\s*([^\n]+)/)?.[1] || '';
-                const refInput = document.getElementById(`ref${index}`);
-                if (refInput) refInput.value = `${author}, ${year}, ${title}`;
-                validateReference(refInput.value, document.getElementById('citationStyle').value, i);
-            });
-        } else {
-            alert('Only BibTeX and RIS formats are supported for now.');
-        }
-        updatePreview();
-        autoSave();
-    };
-    reader.readAsText(file);
+function formatCitation(index) {
+    currentCitationIndex = index;
+    document.getElementById('format-author').value = '';
+    document.getElementById('format-year').value = '';
+    document.getElementById('format-title').value = '';
+    document.getElementById('format-journal').value = '';
+    document.getElementById('citation-format-modal').style.display = 'block';
+}
+
+function applyFormattedCitation() {
+    const author = document.getElementById('format-author').value;
+    const year = document.getElementById('format-year').value;
+    const title = document.getElementById('format-title').value;
+    const journal = document.getElementById('format-journal').value;
+    if (!author || !year || !title) {
+        alert('Please fill in author, year, and title.');
+        return;
+    }
+    const style = document.getElementById('citationStyle').value;
+    let formatted = '';
+    switch (style) {
+        case 'apa': formatted = `${author}. (${year}). ${title}. ${journal}.`; break;
+        case 'mla': formatted = `${author.split(', ')[0].split(' ')[1]}, ${author.split(', ')[0].split(' ')[0]}. "${title}." ${journal}, ${year}.`; break;
+        case 'chicago': formatted = `${author}. ${year}. "${title}." ${journal}.`; break;
+        case 'harvard': formatted = `${author}, ${year}. ${title}. ${journal}.`; break;
+        case 'ieee': formatted = `${author.split(', ')[0][0]}. ${author.split(', ')[1] || author}, "${title}," ${journal}, ${year}.`; break;
+        case 'ama': formatted = `${author}. ${title}. ${journal}. ${year}.`; break;
+        case 'vancouver': formatted = `${author}. ${title}. ${journal} ${year}.`; break;
+        case 'turabian': formatted = `${author}. ${year}. ${title}. ${journal}.`; break;
+        case 'oscola': formatted = `${author}, "${title}" (${year}) ${journal}.`; break;
+        case 'bluebook': formatted = `${author}, ${title}, ${journal} (${year}).`; break;
+        case 'custom': formatted = customStyle.replace('{author}', author).replace('{year}', year).replace('{title}', title).replace('{journal}', journal); break;
+    }
+    const refInput = document.getElementById(`ref${currentCitationIndex}`);
+    refInput.value = formatted;
+    validateReference(formatted, style, currentCitationIndex - 1);
+    document.getElementById('citation-format-modal').style.display = 'none';
+    updatePreview();
+    autoSave();
+}
+
+function closeCitationFormatModal() {
+    document.getElementById('citation-format-modal').style.display = 'none';
 }
 
 function updatePreview() {
@@ -210,6 +224,7 @@ function updatePreview() {
     const outputText = combined + (bibliography ? "\n\nBibliography:\n" + bibliography : '');
     document.getElementById('preview-content').innerText = outputText;
     updateWordCounts();
+    updateGoalProgress();
     updateExportPreview(outputText);
     updateProgress();
 }
@@ -305,6 +320,35 @@ function updateWordCounts() {
     const totalWords = countWords(outputText);
     const snippetsWords = countWords(snippetsOnly);
     document.getElementById('word-count-output').innerText = `Total Words: ${totalWords} (Excluding Citations: ${snippetsWords})`;
+}
+
+function updateGoalProgress() {
+    let totalWords = 0;
+    for (let i = 1; i <= snippetCount; i++) {
+        const snippet = document.getElementById(`snippet${i}`)?.value || '';
+        totalWords += countWords(snippet);
+    }
+    document.getElementById('current-words').innerText = totalWords;
+    document.getElementById('goal-value').innerText = wordGoal;
+    const currentWordsSpan = document.getElementById('current-words');
+    const goalValueSpan = document.getElementById('goal-value');
+    if (totalWords >= wordGoal && wordGoal > 0) {
+        currentWordsSpan.classList.add('goal-reached');
+        goalValueSpan.classList.add('goal-reached');
+        showGoalReached();
+    } else {
+        currentWordsSpan.classList.remove('goal-reached');
+        goalValueSpan.classList.remove('goal-reached');
+    }
+}
+
+function showGoalReached() {
+    const checkmark = document.getElementById('goal-reached');
+    checkmark.style.display = 'block';
+    new Audio('goalReached.wav').play();
+    setTimeout(() => {
+        checkmark.style.display = 'none';
+    }, 2000);
 }
 
 function updateProgress() {
@@ -429,7 +473,7 @@ function saveFlashcards() {
 
 function saveZip() {
     const zip = new JSZip();
-    const text = document.getElementWithId('output-text').innerText;
+    const text = document.getElementById('output-text').innerText;
     zip.file('research_synthesis.txt', text);
     zip.file('research_synthesis.md', text.replace(/^Bibliography:\n/, '## Bibliography\n'));
     const { jsPDF } = window.jspdf;
@@ -523,12 +567,97 @@ function submitRequest() {
     }
 }
 
+function showReferenceLibrary() {
+    loadReferenceLibrary();
+    document.getElementById('reference-library-modal').style.display = 'block';
+}
+
+function closeReferenceLibrary() {
+    document.getElementById('reference-library-modal').style.display = 'none';
+}
+
+function addReferenceToLibrary() {
+    const ref = document.getElementById('library-ref').value;
+    const tag = document.getElementById('library-tag').value;
+    if (ref) {
+        const library = JSON.parse(localStorage.getItem('referenceLibrary')) || [];
+        library.push({ ref, tag });
+        localStorage.setItem('referenceLibrary', JSON.stringify(library));
+        document.getElementById('library-ref').value = '';
+        document.getElementById('library-tag').value = '';
+        loadReferenceLibrary();
+    }
+}
+
+function loadReferenceLibrary() {
+    const library = JSON.parse(localStorage.getItem('referenceLibrary')) || [];
+    const list = document.getElementById('library-list');
+    list.innerHTML = '';
+    library.forEach((item, i) => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+            ${item.ref} (${item.tag || 'No tag'})
+            <button onclick="applyReference(${i})">Apply</button>
+            <button onclick="deleteReference(${i})">Delete</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function applyReference(index) {
+    const library = JSON.parse(localStorage.getItem('referenceLibrary')) || [];
+    const refInput = document.getElementById(`ref${snippetCount}`);
+    if (refInput && library[index]) {
+        refInput.value = library[index].ref;
+        validateReference(library[index].ref, document.getElementById('citationStyle').value, snippetCount - 1);
+        updatePreview();
+        autoSave();
+    }
+}
+
+function deleteReference(index) {
+    const library = JSON.parse(localStorage.getItem('referenceLibrary')) || [];
+    library.splice(index, 1);
+    localStorage.setItem('referenceLibrary', JSON.stringify(library));
+    loadReferenceLibrary();
+}
+
 function savePreferences() {
     preferences = {
         citationStyle: document.getElementById('citationStyle').value
     };
     localStorage.setItem('preferences', JSON.stringify(preferences));
     alert('Preferences saved!');
+}
+
+function startTimer() {
+    if (!timerInterval) {
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+}
+
+function stopTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    timerSeconds = isWorkSession ? 25 * 60 : 5 * 60;
+    document.getElementById('timer-display').innerText = formatTime(timerSeconds);
+}
+
+function updateTimer() {
+    timerSeconds--;
+    if (timerSeconds <= 0) {
+        new Audio('timerBeep.wav').play();
+        isWorkSession = !isWorkSession;
+        timerSeconds = isWorkSession ? 25 * 60 : 5 * 60;
+        document.getElementById('motivational-tip').innerText = isWorkSession ? 'Back to work!' : 'Take a break! Stretch or grab a snack.';
+    }
+    document.getElementById('timer-display').innerText = formatTime(timerSeconds);
+}
+
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 function autoSave() {
@@ -570,6 +699,7 @@ function loadAutoSave() {
                 <div class="tooltip">
                     <input type="text" id="ref${index}" placeholder="${getPlaceholder()}" value="${item.ref}" aria-label="Reference for Snippet ${index}">
                     <span class="tooltiptext" id="ref-tooltip${index}"></span>
+                    <button onclick="formatCitation(${index})" aria-label="Format citation for Snippet ${index}">Format</button>
                 </div>
                 <span id="error${index}" class="error"></span>
                 <span id="correct${index}" class="correct">Correct</span>
@@ -627,6 +757,7 @@ function renumberSnippets() {
         snippet.querySelector('.tooltiptext').id = `ref-tooltip${index}`;
         snippet.querySelector('.error').id = `error${index}`;
         snippet.querySelector('.correct').id = `correct${index}`;
+        snippet.querySelector('button').setAttribute('onclick', `formatCitation(${index})`);
     });
     snippetCount = snippets.length;
     updateAutoAdd();
@@ -651,6 +782,7 @@ function clearAll() {
             <div class="tooltip">
                 <input type="text" id="ref1" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 1">
                 <span class="tooltiptext" id="ref-tooltip1"></span>
+                <button onclick="formatCitation(1)" aria-label="Format citation for Snippet 1">Format</button>
             </div>
             <span id="error1" class="error"></span>
             <span id="correct1" class="correct">Correct</span>
@@ -671,6 +803,7 @@ function clearAll() {
             <div class="tooltip">
                 <input type="text" id="ref2" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 2">
                 <span class="tooltiptext" id="ref-tooltip2"></span>
+                <button onclick="formatCitation(2)" aria-label="Format citation for Snippet 2">Format</button>
             </div>
             <span id="error2" class="error"></span>
             <span id="correct2" class="correct">Correct</span>
@@ -691,6 +824,7 @@ function clearAll() {
             <div class="tooltip">
                 <input type="text" id="ref3" placeholder="${getPlaceholder()}" aria-label="Reference for Snippet 3">
                 <span class="tooltiptext" id="ref-tooltip3"></span>
+                <button onclick="formatCitation(3)" aria-label="Format citation for Snippet 3">Format</button>
             </div>
             <span id="error3" class="error"></span>
             <span id="correct3" class="correct">Correct</span>
@@ -698,25 +832,30 @@ function clearAll() {
     `;
     snippetCount = 3;
     updateAutoAdd();
-    updatePreview();
     autoSave();
 }
 
 function toggleDarkMode() {
     document.documentElement.classList.toggle('dark-mode');
-    document.querySelectorAll('.snippet, #preview, #output-content, #custom-style-modal, #request-form').forEach(el => {
+    document.querySelectorAll('.snippet, #preview, #output-content, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form').forEach(el => {
         el.style.backgroundColor = document.documentElement.classList.contains('dark-mode') ? '#444' : '#fff';
         el.style.color = document.documentElement.classList.contains('dark-mode') ? '#ddd' : '#333';
     });
 }
 
-document.getElementById('import-citations').addEventListener('change', importCitations);
+document.getElementById('word-goal').addEventListener('input', () => {
+    wordGoal = parseInt(document.getElementById('word-goal').value) || 0;
+    localStorage.setItem('wordGoal', wordGoal);
+    updateGoalProgress();
+});
+
 document.getElementById('citationStyle').addEventListener('change', () => {
     if (document.getElementById('citationStyle').value === 'custom') {
         document.getElementById('custom-style-modal').style.display = 'block';
     }
     updatePlaceholders();
 });
+
 document.querySelectorAll('textarea, input').forEach(el => {
     el.addEventListener('input', () => {
         updatePreview();
@@ -726,15 +865,18 @@ document.querySelectorAll('textarea, input').forEach(el => {
         }
     });
 });
+
 document.addEventListener('click', e => {
     if (!e.target.closest('.save-options') && !e.target.closest('button[aria-label="Save online"]') && !e.target.closest('button[aria-label="Save locally"]')) {
         document.getElementById('save-online-options').style.display = 'none';
         document.getElementById('save-locally-options').style.display = 'none';
     }
 });
+
 setInterval(autoSave, 5000);
 const tips = ['Write first, edit later.', 'Clarity is key.', 'Take breaks to stay focused.'];
 document.getElementById('motivational-tip').innerText = tips[Math.floor(Math.random() * tips.length)];
 if (preferences.citationStyle) document.getElementById('citationStyle').value = preferences.citationStyle;
+document.getElementById('word-goal').value = wordGoal || '';
 loadAutoSave();
 updatePlaceholders();
