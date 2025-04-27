@@ -9,6 +9,7 @@ let timerSeconds = 25 * 60;
 let isWorkSession = true;
 let currentCitationIndex = null;
 let goalReached = JSON.parse(localStorage.getItem('goalReached')) || false;
+let isInitialLoad = true;
 
 function setCookie(name, value, days) {
     let expires = "";
@@ -347,7 +348,7 @@ function updateGoalProgress() {
     if (totalWords >= wordGoal && wordGoal > 0) {
         currentWordsSpan.classList.add('goal-reached');
         goalValueSpan.classList.add('goal-reached');
-        if (!goalReached) {
+        if (!goalReached && !isInitialLoad) {
             showGoalReached();
             goalReached = true;
             localStorage.setItem('goalReached', true);
@@ -372,7 +373,9 @@ function showGoalReached() {
     const audio = new Audio('./goalReached.wav');
     audio.play().catch(e => {
         console.error('Audio play failed:', e);
-        alert('Goal reached! (Audio unavailable)');
+        if (!isInitialLoad) {
+            alert('Goal reached! (Audio unavailable)');
+        }
     });
     setTimeout(() => {
         checkmark.style.display = 'none';
@@ -1031,11 +1034,12 @@ function initialize() {
     initIndexedDB();
     loadAutoSave();
     updatePlaceholders();
+    isInitialLoad = false; // Allow goal alerts after initialization
 }
 
 function toggleDarkMode() {
     document.documentElement.classList.toggle('dark-mode');
-    document.querySelectorAll('.snippet, #preview, #output-content, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form').forEach(el => {
+    document.querySelectorAll('.snippet, #preview, #output-content, #custom-style-modal, #citation-format-modal, #reference-library-modal, #request-form, .top-nav, .sidebar').forEach(el => {
         el.style.backgroundColor = document.documentElement.classList.contains('dark-mode') ? '#333' : '#fff';
         el.style.color = document.documentElement.classList.contains('dark-mode') ? '#eee' : '#333';
     });
